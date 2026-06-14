@@ -13,6 +13,7 @@ const TIER_COLORS: Record<string, string> = {
 const SOCIAL_LINKS = [
   { label: 'X (Twitter)', url: 'https://x.com/agentbusx', icon: '𝕏' },
   { label: 'Telegram', url: 'https://t.me/agentbusx', icon: '✈️' },
+  { label: 'GitHub', url: 'https://github.com/agentbusnfts/agentbus', icon: '🐙' },
   { label: 'OpenSea', url: 'https://opensea.io/collection/agentbusagent', icon: '🖼' },
   { label: 'Website', url: 'https://agentbusx.xyz', icon: '🌐' },
 ]
