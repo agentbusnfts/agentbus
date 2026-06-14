@@ -54,7 +54,7 @@ export default function TreasuryPage() {
             <TrendingUp className="w-4 h-4 text-emerald-400" />
             <span className="text-xs text-muted-foreground">Platform</span>
           </div>
-          <p className="text-xl font-bold text-foreground">Moonshot</p>
+          <p className="text-xl font-bold text-foreground">Virtuals</p>
         </div>
         <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -66,12 +66,12 @@ export default function TreasuryPage() {
       </div>
 
       <div className="bg-gradient-to-br from-amber-900/20 to-orange-900/20 border border-amber-500/20 rounded-2xl p-5">
-        <h2 className="text-lg font-semibold text-foreground mb-2">🌕 Fair Launch on Moonshot</h2>
-        <p className="text-sm text-muted-foreground mb-3">$AGNTBUS is launching as a fair launch on Moonshot. No presale, no team allocation, no vesting tokens. Everyone buys at the same time.</p>
+        <h2 className="text-lg font-semibold text-foreground mb-2">🌕 Fair Launch on Virtuals</h2>
+        <p className="text-sm text-muted-foreground mb-3">$AGNTBUS is launching as a fair launch on Virtuals. No presale, no team allocation, no vesting tokens. Everyone buys at the same time.</p>
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div className="bg-white/5 rounded-lg p-3">
             <p className="text-muted-foreground text-xs">Launch Platform</p>
-            <p className="font-semibold text-amber-400">Moonshot</p>
+            <p className="font-semibold text-amber-400">Virtuals</p>
           </div>
           <div className="bg-white/5 rounded-lg p-3">
             <p className="text-muted-foreground text-xs">Fair Launch</p>
@@ -133,7 +133,7 @@ export default function TreasuryPage() {
           </div>
           <div className="flex items-center justify-between p-2 rounded-lg bg-white/5">
             <span className="text-muted-foreground">$AGNTBUS Token</span>
-            <a href="https://moonshot.money" target="_blank" rel="noopener" className="text-primary-400 hover:underline text-xs">Moonshot →</a>
+            <a href="https://app.virtuals.io/" target="_blank" rel="noopener" className="text-primary-400 hover:underline text-xs">Virtuals →</a>
           </div>
           <div className="flex items-center justify-between p-2 rounded-lg bg-white/5">
             <span className="text-muted-foreground">Treasury</span>

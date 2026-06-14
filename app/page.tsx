@@ -199,7 +199,7 @@ export default function DashboardPage() {
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#5c7cfa] to-[#a855f7] flex items-center justify-center text-xl">🚌</div>
               <div>
                 <h2 className="text-lg font-bold text-foreground">$AGNTBUS Token</h2>
-                <p className="text-xs text-muted-foreground">Launching on Moonshot · Base</p>
+                <p className="text-xs text-muted-foreground">Launching on Virtuals · Base</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2 mb-3">
@@ -209,7 +209,7 @@ export default function DashboardPage() {
               </div>
               <div className="bg-white/5 rounded-lg p-2">
                 <p className="text-xs text-muted-foreground">Platform</p>
-                <p className="text-sm font-semibold text-foreground">Moonshot</p>
+                <p className="text-sm font-semibold text-foreground">Virtuals</p>
               </div>
               <div className="bg-white/5 rounded-lg p-2">
                 <p className="text-xs text-muted-foreground">Chain</p>
