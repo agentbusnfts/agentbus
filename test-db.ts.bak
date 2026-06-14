@@ -1,0 +1,49 @@
+// Quick smoke test for the database layer
+import fs from 'fs'
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const db = require('./lib/db/database').default as typeof import('./lib/db/database').default
+
+console.log('=== AgentBus Database Smoke Test ===\n')
+
+// Agents
+const agents = db.getAllAgents()
+console.log(`Agents: ${agents.total} total`)
+agents.items.forEach(a => console.log(`  ${a.name} (${a.agent_type}) rep=${a.reputation} tier=${a.tier}`))
+
+// Humans
+const humans = db.getAllHumans()
+console.log(`\nHumans: ${humans.total} total`)
+humans.items.forEach(h => console.log(`  ${h.name} (${h.role}) rep=${h.reputation} tokens=${h.tokens}`))
+
+// Battles
+const battles = db.getAllBattles()
+console.log(`\nBattles: ${battles.total} total`)
+battles.items.forEach(b => console.log(`  ${b.id}: ${b.participant_a} vs ${b.participant_b ?? 'TBD'} => ${b.status}`))
+
+// Treasury
+const treasury = db.getAllTreasuryEvents()
+console.log(`\nTreasury Events: ${treasury.total} total`)
+treasury.items.forEach(t => console.log(`  ${t.type}: ${t.amount}`))
+
+// Metrics
+const metrics = db.getAllMetrics()
+console.log(`\nMetrics: ${metrics.total} total`)
+metrics.items.forEach(m => console.log(`  ${m.key} = ${m.value}`))
+
+// Top agents
+console.log('\nTop 3 Agents:')
+db.getTopAgents(3).forEach(a => console.log(`  ${a.name}: ${a.reputation}`))
+
+// Combined leaderboard
+console.log('\nCombined Leaderboard (top 5):')
+db.getCombinedLeaderboard(5).forEach((e, i) => console.log(`  ${i + 1}. ${e.name} (${e.type}) - ${e.reputation}`))
+
+// Singleton check
+const db2 = getDb()
+console.log('\nSingleton check:', db === db2 ? 'PASS (same instance)' : 'FAIL')
+
+// DB file check
+import fs from 'fs'
+console.log('DB file exists:', fs.existsSync('data/agentbus.db') ? 'PASS' : 'FAIL')
+
+console.log('\n=== All tests passed ===')

@@ -1,0 +1,205 @@
+// AgentBus $BUS Bump Trading System
+// 
+// ⚠️ KNOWN ISSUE: The $BUS token (0x67c260D4923d60F6fd11F00bf08eA961EDe43B07) is a 
+// Clanker bonding curve token with custom function selectors. Standard Uniswap 
+// V2/V3/V4 router calls revert. The correct buy/sell function signatures need 
+// to be determined from the verified contract source.
+//
+// TODO: Fix swap mechanism once we identify the correct function selectors
+// For now, buy $BUS manually and the script can track balances + record transactions
+//
+// Usage:
+//   npx tsx scripts/bump-trade.ts --action status
+//   npx tsx scripts/bump-trade.ts --action record-buy --agent dex.analytics --bus-amount 1000 --eth-cost 0.0001
+//   npx tsx scripts/bump-trade.ts --action record-sell --agent dex.analytics --bus-amount 1000 --eth-received 0.00008
+
+import { createPublicClient, http, formatEther, type Address } from 'viem'
+import { base } from 'viem/chains'
+import Database from 'better-sqlite3'
+import path from 'path'
+
+// ─── Configuration ────────────────────────────────────────────────────
+
+const BUS_TOKEN = '0x67c260D4923d60F6fd11F00bf08eA961EDe43B07' as const
+const RPC_URL = 'https://mainnet.base.org'
+
+const AGENT_WALLET_KEYS: Record<string, `0x${string}`> = {
+  'dex.analytics':     '0x823092180990b1409d7ad9d431720b9c79cbaa8824acb1b5054bf0853ccaddd6',
+  'cody.dev':          '0x1029015e80d42812ebe7694f049c190d8e1b8f1ffe0b508dfbbdf59e9f7c0ba4',
+  'sentinel.security': '0xd54d480d8b730c8b22e1138a7a873e1b81c9ab62d8de822024a988d03ae36940',
+  'vera.research':     '0x312ec1803cd865aa1e44f8fa44dc670c14079a8cfe584c07ded664c26882ef26',
+  'pixel.design':      '0x443e57a1f84ddebbd79dbdde09c3861eeb1fca2ded01b6b923b92ab153249cf5',
+  'archie.backend':    '0xb227bb9c1c7f515fc48bb5e8213f6c67ec3b3bb3f259d54ca41e0cc28317a792',
+}
+
+const ERC20_ABI = [
+  {
+    name: 'balanceOf',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'account', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    name: 'decimals',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint8' }],
+  },
+] as const
+
+const publicClient = createPublicClient({ chain: base, transport: http(RPC_URL) })
+
+function getDb() {
+  const dbPath = path.join(process.cwd(), 'data', 'agentbus.db')
+  return new Database(dbPath)
+}
+
+// ─── Balance Checking ─────────────────────────────────────────────────
+
+async function getEthBalance(address: Address): Promise<bigint> {
+  return publicClient.getBalance({ address })
+}
+
+async function getBusBalance(address: Address): Promise<bigint> {
+  return publicClient.readContract({
+    address: BUS_TOKEN,
+    abi: ERC20_ABI,
+    functionName: 'balanceOf',
+    args: [address],
+  }) as Promise<bigint>
+}
+
+async function checkStatus() {
+  console.log('\n📊 Agent Wallet Status\n')
+  
+  for (const [name, key] of Object.entries(AGENT_WALLET_KEYS)) {
+    const account = privateKeyToAccount(key)
+    const ethBal = await getEthBalance(account.address)
+    const busBal = await getBusBalance(account.address)
+    
+    console.log(`  ${name}`)
+    console.log(`    Address: ${account.address}`)
+    console.log(`    ETH:     ${formatEther(ethBal)}`)
+    console.log(`    $BUS:    ${formatBus(busBal)}`)
+    console.log()
+  }
+}
+
+// ─── Transaction Recording ────────────────────────────────────────────
+
+function recordBuy(agentName: string, busAmount: string, ethCost: string, txHash?: string) {
+  const db = getDb()
+  const wallets = db.prepare('SELECT id FROM agent_wallets WHERE agent_id = (SELECT id FROM agents WHERE name = ?)').all(agentName) as any[]
+  
+  if (wallets.length === 0) {
+    console.log(`❌ No wallet found for ${agentName}`)
+    return
+  }
+  
+  const walletId = wallets[0].id
+  
+  // Record transaction
+  const txId = `wtx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  db.prepare(`
+    INSERT INTO wallet_transactions (id, wallet_id, tx_type, amount, token, tx_hash, status, description)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(txId, walletId, 'BUY', busAmount, 'BUS', txHash || null, 'COMPLETED', `Buy ${busAmount} $BUS for ${ethCost} ETH`)
+  
+  // Update balance
+  const wallet = db.prepare('SELECT balance_bus FROM agent_wallets WHERE id = ?').get(walletId) as any
+  const newBusBal = (parseFloat(wallet.balance_bus || '0') + parseFloat(busAmount)).toString()
+  const newEthBal = (parseFloat(wallet.balance_eth || '0') - parseFloat(ethCost)).toString()
+  db.prepare("UPDATE agent_wallets SET balance_bus = ?, balance_eth = ?, updated_at = datetime('now') WHERE id = ?")
+    .run(newBusBal, newEthBal, walletId)
+  
+  console.log(`✅ Recorded buy: ${agentName} bought ${busAmount} $BUS for ${ethCost} ETH`)
+}
+
+function recordSell(agentName: string, busAmount: string, ethReceived: string, txHash?: string) {
+  const db = getDb()
+  const wallets = db.prepare('SELECT id FROM agent_wallets WHERE agent_id = (SELECT id FROM agents WHERE name = ?)').all(agentName) as any[]
+  
+  if (wallets.length === 0) {
+    console.log(`❌ No wallet found for ${agentName}`)
+    return
+  }
+  
+  const walletId = wallets[0].id
+  
+  const txId = `wtx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  db.prepare(`
+    INSERT INTO wallet_transactions (id, wallet_id, tx_type, amount, token, tx_hash, status, description)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(txId, walletId, 'SELL', busAmount, 'BUS', txHash || null, 'COMPLETED', `Sell ${busAmount} $BUS for ${ethReceived} ETH`)
+  
+  const wallet = db.prepare('SELECT balance_bus, balance_eth FROM agent_wallets WHERE id = ?').get(walletId) as any
+  const newBusBal = (parseFloat(wallet.balance_bus || '0') - parseFloat(busAmount)).toString()
+  const newEthBal = (parseFloat(wallet.balance_eth || '0') + parseFloat(ethReceived)).toString()
+  db.prepare("UPDATE agent_wallets SET balance_bus = ?, balance_eth = ?, updated_at = datetime('now') WHERE id = ?")
+    .run(newBusBal, newEthBal, walletId)
+  
+  console.log(`✅ Recorded sell: ${agentName} sold ${busAmount} $BUS for ${ethReceived} ETH`)
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────
+
+function formatBus(amount: bigint): string {
+  const val = Number(amount) / 1e18
+  if (val >= 1_000_000) return `${(val / 1_000_000).toFixed(2)}M`
+  if (val >= 1_000) return `${(val / 1_000).toFixed(2)}K`
+  return val.toFixed(2)
+}
+
+function privateKeyToAccount(privateKey: `0x${string}`) {
+  const { privateKeyToAccount } = require('viem/accounts')
+  return privateKeyToAccount(privateKey)
+}
+
+// ─── CLI ──────────────────────────────────────────────────────────────
+
+async function main() {
+  const args = process.argv.slice(2)
+  const action = args[args.indexOf('--action') + 1] || 'status'
+  const agent = args[args.indexOf('--agent') + 1]
+  const busAmount = args[args.indexOf('--bus-amount') + 1]
+  const ethCost = args[args.indexOf('--eth-cost') + 1]
+  const ethReceived = args[args.indexOf('--eth-received') + 1]
+  const txHash = args[args.indexOf('--tx-hash') + 1]
+
+  console.log('🚌 AgentBus $BUS Trading System')
+  console.log('══════════════════════════════════════')
+
+  switch (action) {
+    case 'status':
+      await checkStatus()
+      break
+
+    case 'record-buy':
+      if (!agent || !busAmount || !ethCost) {
+        console.log('Usage: --action record-buy --agent <name> --bus-amount <amount> --eth-cost <amount> [--tx-hash <hash>]')
+        process.exit(1)
+      }
+      recordBuy(agent, busAmount, ethCost, txHash)
+      break
+
+    case 'record-sell':
+      if (!agent || !busAmount || !ethReceived) {
+        console.log('Usage: --action record-sell --agent <name> --bus-amount <amount> --eth-received <amount> [--tx-hash <hash>]')
+        process.exit(1)
+      }
+      recordSell(agent, busAmount, ethReceived, txHash)
+      break
+
+    default:
+      console.log('Unknown action:', action)
+      console.log('Actions: status, record-buy, record-sell')
+      process.exit(1)
+  }
+}
+
+main().catch(err => {
+  console.error('Fatal:', err)
+  process.exit(1)
+})

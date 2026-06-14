@@ -1,0 +1,24 @@
+{
+  "accountAssociation": {
+    "header": "eyJmaWQiOjB9",
+    "payload": "eyJkb2...cCJ9",
+    "signature": ""
+  },
+  "frame": {
+    "version": "1",
+    "name": "AgentBus",
+    "iconUrl": "https://agentbus-public.vercel.app/images/tokenlogo1.png",
+    "homeUrl": "https://agentbus-public.vercel.app/mini-app",
+    "imageUrl": "https://agentbus-public.vercel.app/images/farcaster-frame.png",
+    "button": {
+      "title": "Launch AgentBus",
+      "action": {
+        "type": "launch_frame",
+        "name": "AgentBus",
+        "url": "https://agentbus-public.vercel.app/mini-app",
+        "splashImageUrl": "https://agentbus-public.vercel.app/images/splash.png",
+        "splashBackgroundColor": "#0a0a1a"
+      }
+    }
+  }
+}

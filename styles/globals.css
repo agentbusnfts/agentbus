@@ -1,0 +1,215 @@
+/* AgentBus — Global Styles */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #0a0a0f;
+    --foreground: #e4e4e7;
+    --card: #18181b;
+    --card-foreground: #e4e4e7;
+    --primary: #5c7cfa;
+    --primary-foreground: #ffffff;
+    --secondary: #27272a;
+    --secondary-foreground: #e4e4e7;
+    --muted: #27272a;
+    --muted-foreground: #a1a1aa;
+    --accent: #4c6ef5;
+    --accent-foreground: #ffffff;
+    --destructive: #ef4444;
+    --border: #27272a;
+    --ring: #5c7cfa;
+  }
+
+  * {
+    border-color: var(--border);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-image:
+      radial-gradient(ellipse at top, rgba(92, 124, 250, 0.05) 0%, transparent 50%),
+      radial-gradient(ellipse at bottom, rgba(139, 92, 246, 0.03) 0%, transparent 50%);
+    min-height: 100vh;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background-color: var(--background);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--muted);
+    border-radius: 9999px;
+  }
+
+  /* Safe area for mobile bottom nav */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+@layer components {
+  .glass {
+    background-color: rgb(255 255 255 / 0.05);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgb(255 255 255 / 0.1);
+  }
+
+  .glass-card {
+    background-color: rgb(255 255 255 / 0.05);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: 1rem;
+    padding: 1.5rem;
+  }
+
+  .glow-border {
+    border: 1px solid rgb(92 124 250 / 0.3);
+    box-shadow: 0 0 15px rgb(92 124 250 / 0.15);
+  }
+
+  .gradient-text {
+    background: linear-gradient(to right, #748fc9, #8b5cf6, #5c7cfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .pulse-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+    background-color: #10b981;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  @keyframes cardReveal {
+    0% { opacity: 0; transform: scale(0.95); }
+    50% { opacity: 1; }
+    100% { opacity: 0; transform: scale(1); }
+  }
+
+  .card-shimmer {
+    animation: shimmer 3s infinite;
+  }
+
+  .stat-card {
+    background-color: rgb(255 255 255 / 0.05);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    transition: all 0.3s;
+  }
+
+  .stat-card:hover {
+    border-color: rgb(92 124 250 / 0.3);
+  }
+
+  .btn-primary {
+    padding: 0.75rem 1.5rem;
+    background-color: #4263eb;
+    color: white;
+    border-radius: 0.75rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    cursor: pointer;
+    border: none;
+  }
+
+  .btn-primary:hover {
+    background-color: #4c6ef5;
+    box-shadow: 0 0 20px rgb(92 124 250 / 0.3);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-secondary {
+    padding: 0.75rem 1.5rem;
+    background-color: rgb(255 255 255 / 0.05);
+    color: var(--foreground);
+    border-radius: 0.75rem;
+    font-weight: 500;
+    border: 1px solid rgb(255 255 255 / 0.1);
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .btn-secondary:hover {
+    background-color: rgb(255 255 255 / 0.1);
+  }
+
+  .input-field {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background-color: rgb(255 255 255 / 0.05);
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: 0.75rem;
+    color: var(--foreground);
+    transition: all 0.2s;
+  }
+
+  .input-field::placeholder {
+    color: var(--muted-foreground);
+  }
+
+  .input-field:focus {
+    outline: none;
+    border-color: rgb(92 124 250 / 0.5);
+    box-shadow: 0 0 0 2px rgb(92 124 250 / 0.2);
+  }
+
+  /* Mobile responsive text truncation */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+/* Mobile responsive overrides */
+@media (max-width: 1023px) {
+  /* Prevent horizontal scroll on mobile */
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Make tables scrollable */
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Touch-friendly tap targets */
+@media (max-width: 640px) {
+  .btn-primary, .btn-secondary {
+    min-height: 44px;
+  }
+
+  .input-field {
+    min-height: 44px;
+  }
+
+  a, button {
+    -webkit-tap-highlight-color: transparent;
+  }
+}

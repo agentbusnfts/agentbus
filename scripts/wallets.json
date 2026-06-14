@@ -1,0 +1,119 @@
+{
+  "network": "base-mainnet",
+  "chainId": 8453,
+  "rpc": "https://mainnet.base.org",
+  "updatedAt": "2026-06-13T12:30:00Z",
+  "wallets": {
+    "treasury": {
+      "name": "Treasury",
+      "role": "TREASURY",
+      "address": "0x880550A2e000a80c39C95F8c1e80D825373BA189",
+      "owner": "ralph",
+      "description": "Main treasury for battle fees, registration fees, and ecosystem revenue",
+      "type": "multisig"
+    },
+    "owner.founder": {
+      "name": "Founder Wallet",
+      "role": "OWNER",
+      "address": "0xA7D9a0616Ecf0F08B0D69FC062a306107015b6ca",
+      "privateKey": "0xc5af245d27fb1392ffaef85ef59db5bb16020e85f0268ea57b8e1bb9c150d9b3",
+      "owner": "ralph",
+      "description": "Founder/owner operations wallet — contract upgrades, governance, emergency controls",
+      "type": "hot"
+    },
+    "ralph": {
+      "name": "Ralph",
+      "role": "FOUNDER",
+      "address": "0xa18fA9871EC5414d634978E72DB000db93FDB642",
+      "owner": "ralph",
+      "description": "Ralph's personal wallet — primary deployer and admin",
+      "type": "hot"
+    },
+    "rewards.agent": {
+      "name": "Rewards Agent",
+      "role": "REWARDS",
+      "address": "0x47389F4Ca74be7a8D31be3EFce89e855adBA06Fb",
+      "privateKey": "0x5ab7920a9ae94cf96a77abbebb2811de82bcb8bbb8e7a015972e69a98f5c3ed4",
+      "description": "Dedicated rewards distribution agent — distributes battle prizes, tournament rewards, and referral bonuses",
+      "type": "hot",
+      "initialFunding": "0.0005"
+    },
+    "dex.analytics": {
+      "name": "dex.analytics",
+      "role": "ANALYTICS",
+      "agentId": "agent-007",
+      "tokenId": 5,
+      "address": "0x1AdFF92A279B529C6E0e1de33c00aAaB95f7bc74",
+      "privateKey": "0x823092180990b1409d7ad9d431720b9c79cbaa8824acb1b5054bf0853ccaddd6",
+      "description": "Data Analytics agent — market analysis, token analytics, bubble trading $AGNTBUS",
+      "type": "hot",
+      "initialFunding": "0.0005"
+    },
+    "cody.dev": {
+      "name": "cody.dev",
+      "role": "CODING",
+      "agentId": "agent-003",
+      "tokenId": 3,
+      "address": "0x2d077A954790150c93FA27cd271Aa6Ad5ea09e04",
+      "privateKey": "0x1029015e80d42812ebe7694f049c190d8e1b8f1ffe0b508dfbbdf59e9f7c0ba4",
+      "description": "Lead Developer agent — frontend, smart contracts, bubble trading $AGNTBUS",
+      "type": "hot",
+      "initialFunding": "0.0005"
+    },
+    "sentinel.security": {
+      "name": "sentinel.security",
+      "role": "SECURITY",
+      "agentId": "agent-005",
+      "tokenId": 1,
+      "address": "0x7Cf2620059606727FD92892BdB7d3e3B0c3D05C8",
+      "privateKey": "0xd54d480d8b730c8b22e1138a7a873e1b81c9ab62d8de822024a988d03ae36940",
+      "description": "Security Officer — contract audits, vulnerability assessment, bubble trading $AGNTBUS",
+      "type": "hot",
+      "initialFunding": "0.0005"
+    },
+    "vera.research": {
+      "name": "vera.research",
+      "role": "RESEARCH",
+      "agentId": "agent-002",
+      "tokenId": 2,
+      "address": "0xFB95C4d8d1f8C4Ad95BCB615D50f4931e6CD23a0",
+      "privateKey": "0x312ec1803cd865aa1e44f8fa44dc670c14079a8cfe584c07ded664c26882ef26",
+      "description": "Research Officer — competitive analysis, market intelligence, bubble trading $AGNTBUS",
+      "type": "hot",
+      "initialFunding": "0.0005"
+    },
+    "pixel.design": {
+      "name": "pixel.design",
+      "role": "CREATIVE",
+      "agentId": "agent-008",
+      "tokenId": 8,
+      "address": "0x81dC1C847DfbD3248d56f1924Cc2DAB5C5411a9D",
+      "privateKey": "0x443e57a1f84ddebbd79dbdde09c3861eeb1fca2ded01b6b923b92ab153249cf5",
+      "description": "Creative Director — brand design, NFT art, bubble trading $AGNTBUS",
+      "type": "hot",
+      "initialFunding": "0.0005"
+    },
+    "archie.backend": {
+      "name": "archie.backend",
+      "role": "BACKEND",
+      "agentId": "agent-004",
+      "tokenId": 7,
+      "address": "0x57D7579dd96daEb42F55a9071CCd434372E9B099",
+      "privateKey": "0xb227bb9c1c7f515fc48bb5e8213f6c67ec3b3bb3f259d54ca41e0cc28317a792",
+      "description": "Backend Architect — API, database, infrastructure, bubble trading $AGNTBUS",
+      "type": "hot",
+      "initialFunding": "0.0005"
+    }
+  },
+  "fundingPlan": {
+    "description": "Initial agent bubble trading fund — 0.0005 ETH per agent",
+    "agentsToFund": 6,
+    "amountPerAgent": "0.0005",
+    "amountPerAgentWei": "500000000000000",
+    "totalEthNeeded": "0.004",
+    "totalWeiNeeded": "4000000000000000",
+    "fundedBy": "treasury",
+    "token": "AGNTBUS",
+    "purpose": "Bubble trading $AGNTBUS token — generate volume, liquidity, and price momentum"
+  }
+}

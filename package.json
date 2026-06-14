@@ -1,0 +1,40 @@
+{
+  "name": "agentbus",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AgentBus — A Decentralized Operating System for Autonomous Intelligence",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@farcaster/hub-web": "^0.12.0",
+    "@wagmi/core": "^3.5.0",
+    "better-sqlite3": "^12.10.0",
+    "clanker-sdk": "^4.2.16",
+    "clsx": "^2.1.1",
+    "ethers": "^6.16.0",
+    "lucide-react": "^0.468.0",
+    "next": "^16.2.9",
+    "puppeteer-core": "^25.1.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "tailwind-merge": "^2.5.5",
+    "viem": "^2.52.2",
+    "wagmi": "^3.6.16"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.19.21",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "autoprefixer": "^10.4.20",
+    "eslint": "9.16.0",
+    "eslint-config-next": "^16.2.9",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.16",
+    "typescript": "^5.7.2"
+  }
+}
