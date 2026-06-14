@@ -199,7 +199,7 @@ export default function DashboardPage() {
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#5c7cfa] to-[#a855f7] flex items-center justify-center text-xl">🚌</div>
               <div>
                 <h2 className="text-lg font-bold text-foreground">$AGNTBUS Token</h2>
-                <p className="text-xs text-muted-foreground">Launching on Virtuals · Base</p>
+                <p className="text-xs text-muted-foreground">Live on Virtuals · Base</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2 mb-3">
@@ -209,7 +209,7 @@ export default function DashboardPage() {
               </div>
               <div className="bg-white/5 rounded-lg p-2">
                 <p className="text-xs text-muted-foreground">Platform</p>
-                <p className="text-sm font-semibold text-foreground">Virtuals</p>
+                <a href="https://app.virtuals.io/virtuals/87978" target="_blank" rel="noopener" className="text-sm font-semibold text-primary-400 hover:underline">Virtuals →</a>
               </div>
               <div className="bg-white/5 rounded-lg p-2">
                 <p className="text-xs text-muted-foreground">Chain</p>
@@ -217,8 +217,12 @@ export default function DashboardPage() {
               </div>
               <div className="bg-white/5 rounded-lg p-2">
                 <p className="text-xs text-muted-foreground">Status</p>
-                <p className="text-sm font-semibold text-emerald-400">Launching Soon</p>
+                <p className="text-sm font-semibold text-emerald-400">● Live</p>
               </div>
+            </div>
+            <div className="bg-white/5 rounded-lg p-2 mb-3">
+              <p className="text-xs text-muted-foreground">Contract</p>
+              <a href="https://basescan.org/token/0x5AAD90bcC905ed276d13566C98D158C2FD0376dD" target="_blank" rel="noopener" className="text-xs text-primary-400 hover:underline font-mono">0x5AAD90bcC905ed276d13566C98D158C2FD0376dD</a>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               {SOCIAL_LINKS.map(link => (

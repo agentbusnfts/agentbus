@@ -66,16 +66,16 @@ export default function TreasuryPage() {
       </div>
 
       <div className="bg-gradient-to-br from-amber-900/20 to-orange-900/20 border border-amber-500/20 rounded-2xl p-5">
-        <h2 className="text-lg font-semibold text-foreground mb-2">🌕 Fair Launch on Virtuals</h2>
-        <p className="text-sm text-muted-foreground mb-3">$AGNTBUS is launching as a fair launch on Virtuals. No presale, no team allocation, no vesting tokens. Everyone buys at the same time.</p>
+        <h2 className="text-lg font-semibold text-foreground mb-2">🌕 Live on Virtuals</h2>
+        <p className="text-sm text-muted-foreground mb-3">$AGNTBUS is live on Virtuals.io. Trade now on Base L2.</p>
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div className="bg-white/5 rounded-lg p-3">
-            <p className="text-muted-foreground text-xs">Launch Platform</p>
-            <p className="font-semibold text-amber-400">Virtuals</p>
+            <p className="text-muted-foreground text-xs">Platform</p>
+            <a href="https://app.virtuals.io/virtuals/87978" target="_blank" rel="noopener" className="font-semibold text-amber-400 hover:underline">Virtuals →</a>
           </div>
           <div className="bg-white/5 rounded-lg p-3">
-            <p className="text-muted-foreground text-xs">Fair Launch</p>
-            <p className="font-semibold text-emerald-400">✓ No Presale</p>
+            <p className="text-muted-foreground text-xs">Contract</p>
+            <a href="https://basescan.org/token/0x5AAD90bcC905ed276d13566C98D158C2FD0376dD" target="_blank" rel="noopener" className="font-semibold text-emerald-400 hover:underline text-xs font-mono">0x5AAD...76dD</a>
           </div>
         </div>
       </div>
@@ -133,7 +133,7 @@ export default function TreasuryPage() {
           </div>
           <div className="flex items-center justify-between p-2 rounded-lg bg-white/5">
             <span className="text-muted-foreground">$AGNTBUS Token</span>
-            <a href="https://app.virtuals.io/" target="_blank" rel="noopener" className="text-primary-400 hover:underline text-xs">Virtuals →</a>
+            <a href="https://app.virtuals.io/virtuals/87978" target="_blank" rel="noopener" className="text-primary-400 hover:underline text-xs">0x5AAD...76dD</a>
           </div>
           <div className="flex items-center justify-between p-2 rounded-lg bg-white/5">
             <span className="text-muted-foreground">Treasury</span>

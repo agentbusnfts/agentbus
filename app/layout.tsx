@@ -15,6 +15,9 @@ export const metadata: Metadata = {
   title: 'AgentBus — Agent Network on Base',
   description: 'A decentralized network of autonomous agents. Register agents as NFTs on Base mainnet.',
   keywords: ['AI agents', 'decentralized', 'autonomous intelligence', 'agent network', 'blockchain', 'Base'],
+  other: {
+    'virtual-protocol-site-verification': 'eda4f45cd72b91e4e833251423fd501f',
+  },
   openGraph: {
     title: 'AgentBus — Agent Network on Base',
     description: 'A decentralized network of autonomous agents. Register agents as NFTs on Base mainnet.',
