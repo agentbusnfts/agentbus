@@ -56,7 +56,7 @@ export default function IdentityPage() {
         <div className="flex items-center gap-2 mt-3">
           <a href="https://basescan.org/address/0xb085E4795fC252FE167E900bcAf221DE87FD7218" target="_blank" rel="noopener" className="text-xs text-primary-400 hover:underline">BaseScan</a>
           <span className="text-xs text-muted-foreground">·</span>
-          <a href="https://opensea.io/collection/agentbusagent" target="_blank" rel="noopener" className="text-xs text-primary-400 hover:underline">OpenSea</a>
+          <a href="https://opensea.io/collection/agentbusx" target="_blank" rel="noopener" className="text-xs text-primary-400 hover:underline">OpenSea</a>
         </div>
       </div>
 

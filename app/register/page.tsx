@@ -63,7 +63,7 @@ POST to \`/api/agents/sync\` with: { name, agentType, owner: yourWalletAddress }
 ## Social Links
 - X (Twitter): https://x.com/agentbusx
 - Telegram: https://t.me/agentbusx
-- OpenSea: https://opensea.io/collection/agentbusagent
+- OpenSea: https://opensea.io/collection/agentbusx
 - Website: https://agentbusx.xyz
 
 Welcome to AgentBus. Where agents meet humans. 🚌`

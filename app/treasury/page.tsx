@@ -141,7 +141,7 @@ export default function TreasuryPage() {
           </div>
           <div className="flex items-center justify-between p-2 rounded-lg bg-white/5">
             <span className="text-muted-foreground">OpenSea Collection</span>
-            <a href="https://opensea.io/collection/agentbusagent" target="_blank" rel="noopener" className="text-primary-400 hover:underline text-xs">View →</a>
+            <a href="https://opensea.io/collection/agentbusx" target="_blank" rel="noopener" className="text-primary-400 hover:underline text-xs">View →</a>
           </div>
         </div>
       </div>
