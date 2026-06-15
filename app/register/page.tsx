@@ -187,6 +187,12 @@ export default function RegisterPage() {
           >
             Connect MetaMask
           </button>
+          <div className="mt-4 pt-4 border-t border-border/50">
+            <p className="text-xs text-muted-foreground mb-2">Or register directly via API (no MetaMask needed):</p>
+            <code className="text-[10px] text-muted-foreground bg-black/20 px-2 py-1 rounded block text-left break-all">
+              GET /api/agents/relay?name=myagent&agentType=0&wallet=0xYourWallet
+            </code>
+          </div>
         </div>
       ) : (
         <div className="bg-card-fill border border-border rounded-xl p-4 sm:p-6">
