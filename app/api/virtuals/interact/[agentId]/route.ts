@@ -7,44 +7,53 @@ export async function GET(
   { params }: { params: Promise<{ agentId: string }> } | any
 ) {
   try {
-    const agentId = params?.agentId
+    const resolved = await params
+    const agentId = resolved?.agentId
     if (!agentId) {
       return NextResponse.json({ success: false, error: 'Missing agent ID' }, { status: 400 })
     }
 
-    // Fetch agent details from Virtuals
-    const [detailsRes, engagementsRes] = await Promise.all([
-      fetch(`https://api2.virtuals.io/api/agents/${agentId}/details`, {
-        signal: AbortSignal.timeout(10000)
-      }).catch(() => null),
-      fetch(`https://api2.virtuals.io/api/agents/${agentId}/engagements?pagination[page]=1&pagination[pageSize]=10`, {
-        signal: AbortSignal.timeout(10000)
-      }).catch(() => null),
-    ])
-
-    let details = null
-    let engagements = []
-
-    if (detailsRes?.ok) {
-      const json = await detailsRes.json()
-      details = json.data
-    }
-
-    if (engagementsRes?.ok) {
-      const json = await engagementsRes.json()
-      engagements = json.data || []
-    }
-
-    // If details API failed, try the virtuals endpoint
-    if (!details) {
+    // Fetch agent details from Virtuals (try virtuals endpoint first, it's more reliable)
+    let raw = ''
+    try {
       const vRes = await fetch(`https://api2.virtuals.io/api/virtuals/${agentId}`, {
-        signal: AbortSignal.timeout(10000)
-      }).catch(() => null)
-      if (vRes?.ok) {
-        const vJson = await vRes.json()
-        details = vJson.data
-      }
+        signal: AbortSignal.timeout(15000),
+        headers: { 'Accept': 'application/json' },
+      })
+      if (vRes.ok) raw = await vRes.text()
+    } catch { /* timeout or network error */ }
+
+    if (!raw || raw.trim().length === 0) {
+      // Fallback to agents endpoint
+      try {
+        const aRes = await fetch(`https://api2.virtuals.io/api/agents/${agentId}/details`, {
+          signal: AbortSignal.timeout(15000),
+          headers: { 'Accept': 'application/json' },
+        })
+        if (aRes.ok) raw = await aRes.text()
+      } catch { /* timeout or network error */ }
     }
+
+    // Fetch engagements separately
+    let engagements: any[] = []
+    try {
+      const eRes = await fetch(`https://api2.virtuals.io/api/agents/${agentId}/engagements?pagination[page]=1&pagination[pageSize]=10`, {
+        signal: AbortSignal.timeout(10000),
+      })
+      if (eRes.ok) {
+        const eText = await eRes.text()
+        if (eText && eText.trim().length > 0) {
+          const eJson = JSON.parse(eText)
+          engagements = eJson.data || []
+        }
+      }
+    } catch { /* ignore engagement errors */ }
+
+    if (!raw || raw.trim().length === 0) {
+      return NextResponse.json({ success: false, error: 'Agent not found (upstream unavailable)' }, { status: 503 })
+    }
+
+    const details = JSON.parse(raw).data || JSON.parse(raw)
 
     if (!details) {
       return NextResponse.json({ success: false, error: 'Agent not found' }, { status: 404 })

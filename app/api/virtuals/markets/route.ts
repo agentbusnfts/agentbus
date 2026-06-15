@@ -19,7 +19,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, data: [], total: 0 })
     }
 
-    const json = await res.json()
+    const text = await res.text()
+    if (!text || text.trim().length === 0) {
+      return NextResponse.json({ success: true, data: [], total: 0, note: 'upstream_empty' })
+    }
+
+    const json = JSON.parse(text)
     return NextResponse.json({
       success: true,
       data: json.data || [],
