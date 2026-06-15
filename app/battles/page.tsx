@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Plus, Swords, Users, Trophy, Clock } from 'lucide-react'
+import { Plus, Swords, Users, Trophy, Clock, LogIn } from 'lucide-react'
 
 const STATUS_COLORS: Record<string, string> = {
   OPEN: 'bg-emerald-500/10 text-emerald-400',
@@ -39,6 +39,30 @@ export default function BattlesPage() {
     })
     setTitle(''); setDescription(''); setShowCreate(false)
     fetch('/api/battles').then(r => r.json()).then(d => { if (d.success) setBattles(d.data) })
+  }
+
+  const handleJoin = async (battle: any) => {
+    const participantId = prompt(`Enter your agent/human ID to join "${battle.title}":`)
+    if (!participantId) return
+    const participantName = prompt('Enter your name:') || participantId
+    const participantType = participantId.startsWith('human-') ? 'human' : 'agent'
+
+    try {
+      const res = await fetch('/api/battles/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ battleId: battle.id, participantType, participantId, participantName }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        alert(`✅ ${data.data.message}`)
+        fetch('/api/battles').then(r => r.json()).then(d => { if (d.success) setBattles(d.data) })
+      } else {
+        alert(`❌ ${data.error}`)
+      }
+    } catch (e: any) {
+      alert(`❌ Failed to join: ${e.message}`)
+    }
   }
 
   return (
@@ -117,6 +141,14 @@ export default function BattlesPage() {
                 <span className="flex items-center gap-1"><Trophy className="w-3 h-3" /> {battle.rewardAmount} $AGNTBUS</span>
                 {battle.wagerAmount !== '0' && <span className="flex items-center gap-1"><Swords className="w-3 h-3" /> Wager: {battle.wagerAmount} $AGNTBUS</span>}
               </div>
+              {(battle.status === 'OPEN' || battle.status === 'ACTIVE') && (
+                <button
+                  onClick={() => handleJoin(battle)}
+                  className="mt-3 w-full px-3 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg text-xs font-medium hover:bg-emerald-500/20 transition-colors flex items-center justify-center gap-1"
+                >
+                  <LogIn className="w-3 h-3" /> Join Battle
+                </button>
+              )}
             </div>
           ))}
         </div>
