@@ -34,8 +34,9 @@ export default function DashboardPage() {
       fetch('/api/battles').then(r => r.json()),
       fetch('/api/projects').then(r => r.json()),
       fetch('/api/proposals').then(r => r.json()),
-    ]).then(([m, a, h, b, p, pr]) => {
-      if (m.success) setMetrics(m.data)
+      fetch('/api/virtuals').then(r => r.json()),
+    ]).then(([m, a, h, b, p, pr, v]) => {
+      if (m.success) setMetrics((prev: any) => ({ ...prev, ...m.data, ...(v.success ? v.data : {}) }))
       if (a.success) setAgents(a.data.items || [])
       if (h.success) setHumans(h.data || [])
       if (b.success) setBattles(b.data || [])
@@ -194,42 +195,43 @@ export default function DashboardPage() {
           </div>
 
           {/* $AGNTBUS Token Card */}
-          <div className="bg-gradient-to-br from-indigo-900/30 to-purple-900/30 border border-indigo-500/20 rounded-2xl p-4 sm:p-5">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#5c7cfa] to-[#a855f7] flex items-center justify-center text-xl">🚌</div>
-              <div>
-                <h2 className="text-lg font-bold text-foreground">$AGNTBUS Token</h2>
-                <p className="text-xs text-muted-foreground">Live on Virtuals · Base</p>
+          <div className="bg-gradient-to-br from-[#7c3aed]/20 to-[#a855f7]/10 border border-[#7c3aed]/20 rounded-2xl p-4 sm:p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#7c3aed] to-[#a855f7] flex items-center justify-center text-xl">🚌</div>
+                <div>
+                  <h2 className="text-lg font-bold text-foreground">$AGNTBUS</h2>
+                  <p className="text-xs text-muted-foreground">Live on Virtuals Protocol</p>
+                </div>
               </div>
+              <Link href="/virtuals" className="text-xs text-primary-400 hover:underline">View Details →</Link>
             </div>
             <div className="grid grid-cols-2 gap-2 mb-3">
               <div className="bg-white/5 rounded-lg p-2">
-                <p className="text-xs text-muted-foreground">Ticker</p>
-                <p className="text-sm font-semibold text-foreground">$AGNTBUS</p>
+                <p className="text-xs text-muted-foreground">Price</p>
+                <p className="text-sm font-semibold text-foreground">{metrics?.price ? `$${Number(metrics.price).toFixed(6)}` : 'Loading...'}</p>
               </div>
               <div className="bg-white/5 rounded-lg p-2">
-                <p className="text-xs text-muted-foreground">Platform</p>
-                <a href="https://app.virtuals.io/virtuals/87978" target="_blank" rel="noopener" className="text-sm font-semibold text-primary-400 hover:underline">Virtuals →</a>
+                <p className="text-xs text-muted-foreground">Market Cap</p>
+                <p className="text-sm font-semibold text-foreground">{metrics?.marketCap ? `$${Number(metrics.marketCap).toLocaleString(undefined, { maximumFractionDigits: 0 })}` : 'Loading...'}</p>
               </div>
               <div className="bg-white/5 rounded-lg p-2">
-                <p className="text-xs text-muted-foreground">Chain</p>
-                <p className="text-sm font-semibold text-foreground">Base L2</p>
+                <p className="text-xs text-muted-foreground">24h Volume</p>
+                <p className="text-sm font-semibold text-foreground">{metrics?.volume24h ? `$${Number(metrics.volume24h).toLocaleString(undefined, { maximumFractionDigits: 0 })}` : 'Loading...'}</p>
               </div>
               <div className="bg-white/5 rounded-lg p-2">
-                <p className="text-xs text-muted-foreground">Status</p>
-                <p className="text-sm font-semibold text-emerald-400">● Live</p>
+                <p className="text-xs text-muted-foreground">Holders</p>
+                <p className="text-sm font-semibold text-foreground">{metrics?.holderCount || '—'}</p>
               </div>
             </div>
             <div className="bg-white/5 rounded-lg p-2 mb-3">
               <p className="text-xs text-muted-foreground">Contract</p>
-              <a href="https://basescan.org/token/0x5AAD90bcC905ed276d13566C98D158C2FD0376dD" target="_blank" rel="noopener" className="text-xs text-primary-400 hover:underline font-mono">0x5AAD90bcC905ed276d13566C98D158C2FD0376dD</a>
+              <a href="https://basescan.org/token/0x5AAD90bcC905ed276d13566C98D158C2FD0376dD" target="_blank" rel="noopener" className="text-xs text-primary-400 hover:underline font-mono">0x5AAD...76dD</a>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              {SOCIAL_LINKS.map(link => (
-                <a key={link.label} href={link.url} target="_blank" rel="noopener" className="text-xs text-primary-400 hover:underline">
-                  {link.icon} {link.label}
-                </a>
-              ))}
+              <a href="https://app.virtuals.io/virtuals/87978" target="_blank" rel="noopener" className="text-xs text-primary-400 hover:underline">Virtuals →</a>
+              <a href="https://app.virtuals.io/os" target="_blank" rel="noopener" className="text-xs text-primary-400 hover:underline">Virtuals OS →</a>
+              <a href="https://app.virtuals.io/acp/scan" target="_blank" rel="noopener" className="text-xs text-primary-400 hover:underline">ACP Protocol →</a>
             </div>
           </div>
         </div>

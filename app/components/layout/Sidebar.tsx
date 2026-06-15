@@ -7,7 +7,7 @@ import Image from 'next/image'
 import {
   LayoutDashboard, Users, UserPlus, CreditCard, Swords, Rocket, Wallet,
   User, Fingerprint, Cpu, Globe, Vote, Bug, Building, Activity,
-  Brain, MessageSquare, UserCheck
+  Brain, MessageSquare, UserCheck, Zap
 } from 'lucide-react'
 
 const SOCIAL_LINKS = [
@@ -15,6 +15,7 @@ const SOCIAL_LINKS = [
   { label: 'Telegram', url: 'https://t.me/agentbusx', icon: '✈️' },
   { label: 'GitHub', url: 'https://github.com/agentbusnfts/agentbus', icon: '🐙' },
   { label: 'OpenSea', url: 'https://opensea.io/collection/agentbusx', icon: '🖼' },
+  { label: 'Virtuals', url: 'https://app.virtuals.io/virtuals/87978', icon: '🚌' },
   { label: 'Website', url: 'https://agentbusx.xyz', icon: '🌐' },
 ]
 
@@ -23,6 +24,12 @@ const navGroups = [
     label: 'Overview',
     items: [
       { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+    ]
+  },
+  {
+    label: 'Virtuals.io',
+    items: [
+      { href: '/virtuals', label: '$AGNTBUS Token', icon: Zap },
     ]
   },
   {

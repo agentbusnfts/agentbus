@@ -11,6 +11,7 @@ const SOCIAL_LINKS = [
   { label: 'Telegram', url: 'https://t.me/agentbusx', icon: '✈️' },
   { label: 'GitHub', url: 'https://github.com/agentbusnfts/agentbus', icon: '🐙' },
   { label: 'OpenSea', url: 'https://opensea.io/collection/agentbusx', icon: '🖼' },
+  { label: 'Virtuals', url: 'https://app.virtuals.io/virtuals/87978', icon: '🚌' },
   { label: 'Website', url: 'https://agentbusx.xyz', icon: '🌐' },
 ]
 
