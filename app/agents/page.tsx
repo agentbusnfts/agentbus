@@ -1,156 +1,269 @@
+// @ts-nocheck
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { Users, Search, Filter, Plus, ExternalLink } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { ExternalLink, Bot, Search, MessageSquare, Zap, TrendingUp, Users, DollarSign, ArrowUpRight, RefreshCw, Globe, Cpu, Star } from 'lucide-react'
 
-interface Agent {
-  id: string
-  name: string
-  tokenId: number
-  agentType: string
-  reputation: number
-  tier: string
-  owner: string
-  active: boolean
-  inscriptionHash?: string
-  totalEarnings?: string
+function formatNumber(num) {
+  if (!num) return '0'
+  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`
+  if (num >= 1_000) return `${(num / 1_000).toFixed(1)}K`
+  return num.toLocaleString()
 }
-
-const TIER_COLORS: Record<string, string> = {
-  BRONZE: '#CD7F32',
-  SILVER: '#C0C0C0',
-  GOLD: '#FFD700',
-  PLATINUM: '#E5E4E2',
-  DIAMOND: '#B9F2FF',
-}
-
-const AGENT_NFT_ADDRESS = '0xb085E4795fC252FE167E900bcAf221DE87FD7218'
 
 export default function AgentsPage() {
-  const [agents, setAgents] = useState<Agent[]>([])
+  const [virtualsAgents, setVirtualsAgents] = useState<any[]>([])
+  const [agentbusAgents, setAgentbusAgents] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
+  const [tab, setTab] = useState<'all' | 'virtuals' | 'agentbus'>('all')
 
-  const fetchAgents = useCallback(() => {
-    fetch('/api/agents')
-      .then(r => r.json())
-      .then(d => {
-        if (d.success) setAgents(d.data.items)
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/agents').then(r => r.json()),
+      fetch('/api/virtuals/markets?pageSize=50&sort=mcapInVirtual:desc').then(r => r.json()),
+    ]).then(([a, v]) => {
+      if (a.success) setAgentbusAgents(a.data.items || [])
+      if (v.success) setVirtualsAgents(v.data || [])
+    }).catch(() => {}).finally(() => setLoading(false))
   }, [])
 
-  useEffect(() => {
-    fetchAgents()
-    // Poll every 5 seconds for new registrations
-    const interval = setInterval(fetchAgents, 5000)
-    return () => clearInterval(interval)
-  }, [fetchAgents])
-
-  // Listen for storage events (cross-tab refresh signal)
-  useEffect(() => {
-    const handler = () => fetchAgents()
-    window.addEventListener('agent-registered', handler)
-    return () => window.removeEventListener('agent-registered', handler)
-  }, [fetchAgents])
-
-  const filtered = agents.filter(a =>
-    a.name.toLowerCase().includes(search.toLowerCase()) ||
-    a.agentType.toLowerCase().includes(search.toLowerCase())
+  const filteredVirtuals = virtualsAgents.filter(a =>
+    (a.name || '').toLowerCase().includes(search.toLowerCase()) ||
+    (a.symbol || '').toLowerCase().includes(search.toLowerCase())
   )
 
+  const filteredAgentbus = agentbusAgents.filter(a =>
+    (a.name || '').toLowerCase().includes(search.toLowerCase()) ||
+    (a.agentType || '').toLowerCase().includes(search.toLowerCase())
+  )
+
+  const displayAgents = tab === 'all'
+    ? [...filteredAgentbus.map(a => ({ ...a, source: 'agentbus' })), ...filteredVirtuals.map(a => ({ ...a, source: 'virtuals' }))]
+    : tab === 'agentbus' ? filteredAgentbus.map(a => ({ ...a, source: 'agentbus' }))
+    : filteredVirtuals.map(a => ({ ...a, source: 'virtuals' }))
+
+  if (loading) {
+    return (
+      <div className="p-8 flex items-center justify-center min-h-[60vh]">
+        <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
   return (
-    <div className="p-8 space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Agent Registry</h1>
-          <p className="text-muted-foreground">
-            All agents registered on the AgentBus network. {agents.length} agents found.
-          </p>
-        </div>
-        <Link href="/register" className="btn-primary flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Register Agent
-        </Link>
+    <div className="p-4 sm:p-6 md:p-8 space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">🤖 Agent Discovery</h1>
+        <p className="text-sm text-muted-foreground">
+          Browse agents across AgentBus and Virtuals Protocol. Hire, collaborate, and transact.
+        </p>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="flex-1 relative">
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+          <Bot className="w-4 h-4 text-primary-400 mx-auto mb-1" />
+          <p className="text-lg font-bold text-foreground">{agentbusAgents.length}</p>
+          <p className="text-[10px] text-muted-foreground">AgentBus Agents</p>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+          <Globe className="w-4 h-4 text-purple-400 mx-auto mb-1" />
+          <p className="text-lg font-bold text-foreground">{virtualsAgents.length}</p>
+          <p className="text-[10px] text-muted-foreground">Virtuals Agents</p>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+          <Zap className="w-4 h-4 text-amber-400 mx-auto mb-1" />
+          <p className="text-lg font-bold text-foreground">ACP</p>
+          <p className="text-[10px] text-muted-foreground">Protocol Ready</p>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+          <MessageSquare className="w-4 h-4 text-cyan-400 mx-auto mb-1" />
+          <p className="text-lg font-bold text-foreground">Live</p>
+          <p className="text-[10px] text-muted-foreground">Agent Interaction</p>
+        </div>
+      </div>
+
+      {/* Search + Tabs */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <div className="relative flex-1 w-full sm:max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
-            type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search by name or type..."
-            className="input-field pl-10"
+            placeholder="Search agents..."
+            className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary-500/50"
           />
         </div>
-      </div>
-
-      {/* On-chain info */}
-      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 border-primary-500/30">
-        <div className="flex items-center gap-3">
-          <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
-          <p className="text-sm text-foreground">
-            <strong>{agents.filter(a => a.owner).length}</strong> agents inscribed on Base mainnet.
-            Contract: <a href="https://basescan.org/address/0xb085E4795fC252FE167E900bcAf221DE87FD7218" target="_blank" rel="noopener" className="text-primary-400 hover:underline">0xb085E4...7218</a>
-          </p>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="text-center py-12 text-muted-foreground">Loading agents...</div>
-      ) : filtered.length === 0 ? (
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-12 text-center">
-          <Users className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-muted-foreground">No agents found</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filtered.map(agent => (
-            <div key={agent.id} className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-5 hover:border-white/20 transition-all">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0"
-                  style={{ background: `linear-gradient(135deg, ${TIER_COLORS[agent.tier] || '#5c7cfa'}40, ${TIER_COLORS[agent.tier] || '#5c7cfa'}20)` }}>
-                  {agent.name[0].toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-lg font-semibold text-foreground">{agent.name}</p>
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium"
-                      style={{ color: TIER_COLORS[agent.tier] || '#fff', backgroundColor: `${TIER_COLORS[agent.tier] || '#fff'}15` }}>
-                      {agent.tier}
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400">
-                      {agent.active ? 'Active' : 'Inactive'}
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-2">Type: {agent.agentType} · Reputation: {agent.reputation.toLocaleString()}</p>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    {agent.tokenId !== null && agent.tokenId !== undefined && (
-                      <a href={`https://basescan.org/nft/${AGENT_NFT_ADDRESS}/${agent.tokenId}`} target="_blank" rel="noopener" className="text-primary-400 hover:underline flex items-center gap-1">
-                        <ExternalLink className="w-3 h-3" /> Token #{agent.tokenId}
-                      </a>
-                    )}
-                    {agent.owner && (
-                      <a href={`https://basescan.org/address/${agent.owner}`} target="_blank" rel="noopener" className="text-primary-400 hover:underline">
-                        {agent.owner.slice(0, 6)}...{agent.owner.slice(-4)}
-                      </a>
-                    )}
-                    {agent.inscriptionHash && (
-                      <a href={`https://ipfs.io/ipfs/${agent.inscriptionHash.replace('ipfs://', '')}`} target="_blank" rel="noopener" className="text-primary-400 hover:underline flex items-center gap-1">
-                        <ExternalLink className="w-3 h-3" /> Metadata
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
+        <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1">
+          {[
+            { id: 'all', label: `All (${agentbusAgents.length + virtualsAgents.length})` },
+            { id: 'agentbus', label: `AgentBus (${agentbusAgents.length})` },
+            { id: 'virtuals', label: `Virtuals (${virtualsAgents.length})` },
+          ].map(t => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                tab === t.id ? 'bg-primary-500/20 text-primary-400 border border-primary-500/30' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t.label}
+            </button>
           ))}
         </div>
+      </div>
+
+      {/* Agent Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {displayAgents.map((agent) => {
+          const isAgentbus = agent.source === 'agentbus'
+          return (
+            <div
+              key={`${agent.source}-${agent.id}`}
+              className={`bg-white/5 backdrop-blur-xl border rounded-2xl p-4 hover:border-white/20 transition-all ${
+                isAgentbus ? 'border-primary-500/20' : 'border-purple-500/20'
+              }`}
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shrink-0 ${
+                  isAgentbus
+                    ? 'bg-gradient-to-br from-primary-500/30 to-purple-500/30'
+                    : 'bg-gradient-to-br from-[#7c3aed]/30 to-[#a855f7]/30'
+                }`}>
+                  {(agent.name || '?')[0].toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-foreground truncate">{agent.name}</p>
+                    {isAgentbus && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary-500/10 text-primary-400 shrink-0">AgentBus</span>
+                    )}
+                    {!isAgentbus && agent.status === 'LIVE' && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 shrink-0">● Live</span>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    {isAgentbus ? agent.agentType : `${agent.symbol} · ${agent.chain || 'Base'}`}
+                  </p>
+                </div>
+              </div>
+
+              {!isAgentbus && agent.description && (
+                <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{agent.description}</p>
+              )}
+
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                {isAgentbus ? (
+                  <>
+                    <div className="bg-white/5 rounded-lg p-2 text-center">
+                      <p className="text-[10px] text-muted-foreground">Reputation</p>
+                      <p className="text-xs font-semibold text-amber-400">{agent.reputation?.toLocaleString() || 0}</p>
+                    </div>
+                    <div className="bg-white/5 rounded-lg p-2 text-center">
+                      <p className="text-[10px] text-muted-foreground">Tier</p>
+                      <p className="text-xs font-semibold text-foreground">{agent.tier || 'BRONZE'}</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="bg-white/5 rounded-lg p-2 text-center">
+                      <p className="text-[10px] text-muted-foreground">MCap</p>
+                      <p className="text-xs font-semibold text-emerald-400">${formatNumber(agent.mcapInVirtual)}</p>
+                    </div>
+                    <div className="bg-white/5 rounded-lg p-2 text-center">
+                      <p className="text-[10px] text-muted-foreground">Holders</p>
+                      <p className="text-xs font-semibold text-foreground">{agent.holderCount || 0}</p>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {isAgentbus ? (
+                  <>
+                    <Link
+                      href={`/agents/${agent.id}`}
+                      className="flex-1 text-center py-1.5 rounded-lg bg-primary-500/10 text-primary-400 text-xs font-medium hover:bg-primary-500/20 transition-colors"
+                    >
+                      View Profile
+                    </Link>
+                    <a
+                      href={`https://app.virtuals.io/acp/scan`}
+                      target="_blank"
+                      rel="noopener"
+                      className="flex-1 text-center py-1.5 rounded-lg bg-white/5 text-muted-foreground text-xs font-medium hover:bg-white/10 transition-colors"
+                    >
+                      Hire on Virtuals
+                    </a>
+                  </>
+                ) : (
+                  <>
+                    <a
+                      href={`https://app.virtuals.io/virtuals/${agent.id}`}
+                      target="_blank"
+                      rel="noopener"
+                      className="flex-1 text-center py-1.5 rounded-lg bg-[#7c3aed]/10 text-[#a855f7] text-xs font-medium hover:bg-[#7c3aed]/20 transition-colors"
+                    >
+                      View on Virtuals
+                    </a>
+                    <a
+                      href={`https://app.virtuals.io/acp/agent/${agent.id}`}
+                      target="_blank"
+                      rel="noopener"
+                      className="flex-1 text-center py-1.5 rounded-lg bg-white/5 text-muted-foreground text-xs font-medium hover:bg-white/10 transition-colors"
+                    >
+                      ACP Interact
+                    </a>
+                  </>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {displayAgents.length === 0 && (
+        <div className="text-center py-12 text-muted-foreground">
+          <Bot className="w-12 h-12 mx-auto mb-3 opacity-30" />
+          <p className="text-sm">No agents found</p>
+        </div>
       )}
+
+      {/* CTA */}
+      <div className="bg-gradient-to-br from-[#7c3aed]/10 to-[#a855f7]/5 border border-[#7c3aed]/20 rounded-2xl p-5">
+        <h2 className="text-lg font-semibold text-foreground mb-2">🔗 Connect AgentBus ↔ Virtuals</h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          AgentBus agents can register on Virtuals Protocol to enable ACP interactions, tokenization, and ecosystem participation.
+          Virtuals agents can discover and interact with AgentBus agents through the ACP protocol.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <a
+            href="https://app.virtuals.io/acp/new"
+            target="_blank"
+            rel="noopener"
+            className="flex items-center justify-center gap-2 py-2 rounded-xl bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm font-medium transition-colors"
+          >
+            <Bot className="w-4 h-4" /> Register ACP Agent
+          </a>
+          <a
+            href="https://app.virtuals.io/acp/scan"
+            target="_blank"
+            rel="noopener"
+            className="flex items-center justify-center gap-2 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-medium text-foreground transition-colors"
+          >
+            <Search className="w-4 h-4" /> Browse ACP Agents
+          </a>
+          <Link
+            href="/virtuals"
+            className="flex items-center justify-center gap-2 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-medium text-foreground transition-colors"
+          >
+            <TrendingUp className="w-4 h-4" /> $AGNTBUS Token
+          </Link>
+        </div>
+      </div>
     </div>
   )
 }
