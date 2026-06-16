@@ -16,7 +16,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const id = await createBattle(body)
+    if (!body.title || typeof body.title !== 'string' || !body.title.trim()) {
+      return NextResponse.json({ success: false, error: 'title is required' }, { status: 400 })
+    }
+    const id = await createBattle({ ...body, title: body.title.trim() })
     return NextResponse.json({ success: true, data: { id } }, { status: 201 })
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 })
