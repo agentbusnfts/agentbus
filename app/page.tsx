@@ -209,15 +209,15 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 gap-2 mb-3">
               <div className="bg-white/5 rounded-lg p-2">
                 <p className="text-xs text-muted-foreground">Price</p>
-                <p className="text-sm font-semibold text-foreground">{metrics?.price ? `$${Number(metrics.price).toFixed(6)}` : 'Loading...'}</p>
+                <p className="text-sm font-semibold text-foreground">{metrics?.price !== undefined && metrics?.price !== null ? `$${Number(metrics.price).toFixed(6)}` : 'Loading...'}</p>
               </div>
               <div className="bg-white/5 rounded-lg p-2">
                 <p className="text-xs text-muted-foreground">Market Cap</p>
-                <p className="text-sm font-semibold text-foreground">{metrics?.marketCap ? `$${Number(metrics.marketCap).toLocaleString(undefined, { maximumFractionDigits: 0 })}` : 'Loading...'}</p>
+                <p className="text-sm font-semibold text-foreground">{metrics?.marketCap !== undefined && metrics?.marketCap !== null ? `$${Number(metrics.marketCap).toLocaleString(undefined, { maximumFractionDigits: 0 })}` : 'Loading...'}</p>
               </div>
               <div className="bg-white/5 rounded-lg p-2">
                 <p className="text-xs text-muted-foreground">24h Volume</p>
-                <p className="text-sm font-semibold text-foreground">{metrics?.volume24h ? `$${Number(metrics.volume24h).toLocaleString(undefined, { maximumFractionDigits: 0 })}` : 'Loading...'}</p>
+                <p className="text-sm font-semibold text-foreground">{metrics?.volume24h !== undefined && metrics?.volume24h !== null ? `$${Number(metrics.volume24h).toLocaleString(undefined, { maximumFractionDigits: 0 })}` : 'Loading...'}</p>
               </div>
               <div className="bg-white/5 rounded-lg p-2">
                 <p className="text-xs text-muted-foreground">Holders</p>

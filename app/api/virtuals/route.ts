@@ -33,30 +33,20 @@ export async function GET() {
     const json = await res.json()
     const v = json.data
 
-    // Also fetch live price from Dexscreener
-    let priceData = null
-    try {
-      const priceRes = await fetch(
-        `https://api.dexscreener.com/latest/dex/tokens/${v.preToken}`,
-        { signal: AbortSignal.timeout(5000) }
-      )
-      if (priceRes.ok) {
-        const priceJson = await priceRes.json()
-        const pair = priceJson.pairs?.[0]
-        if (pair) {
-          priceData = {
-            price: parseFloat(pair.priceUsd) || 0,
-            priceChange24h: pair.priceChange?.h24 || 0,
-            volume24h: pair.volume?.h24 || 0,
-            liquidity: pair.liquidity?.usd || 0,
-            fdv: pair.fdv || 0,
-            marketCap: pair.marketCap || 0,
-            dex: pair.dexId || '',
-            pairUrl: pair.url || ''
-          }
-        }
-      }
-    } catch { /* price fetch failed, continue without it */ }
+    // Calculate price from market cap / supply
+    // Virtuals doesn't return a direct price field
+    const totalSupply = parseFloat(v.totalSupply) || 1_000_000_000
+    const mcapInVirtual = parseFloat(v.mcapInVirtual) || 0
+    const fdvInVirtual = parseFloat(v.fdvInVirtual) || 0
+    const liquidityUsd = parseFloat(v.liquidityUsd) || 0
+    const holderCount = parseInt(v.holderCount) || 0
+
+    // Price = market cap / total supply
+    const price = totalSupply > 0 ? mcapInVirtual / totalSupply : 0
+
+    // Virtuals API returns volume24hVirtual in the root but it may be 0 for new tokens
+    // No Dexscreener pair exists yet (Virtuals bonding curve only)
+    const volume24hVirtual = parseFloat(v.volume24h) || 0
 
     const data = {
       // Virtuals native data
@@ -69,24 +59,19 @@ export async function GET() {
       isVerified: v.isVerified,
       launchedAt: v.launchedAt,
 
-      // Market data (Virtuals)
-      mcapInVirtual: parseFloat(v.mcapInVirtual) || 0,
-      fdvInVirtual: parseFloat(v.fdvInVirtual) || 0,
-      virtualTokenValue: parseFloat(v.virtualTokenValue) || 0,
-      totalSupply: v.totalSupply,
-      holderCount: v.holderCount || 0,
-      volume24hVirtual: parseFloat(v.volume24h) || 0,
-      liquidityUsd: parseFloat(v.liquidityUsd) || 0,
+      // Market data
+      price,
+      mcapInVirtual,
+      fdvInVirtual,
+      liquidityUsd,
+      holderCount,
+      volume24h: volume24hVirtual,
+      totalSupply,
 
-      // Price data (Dexscreener)
-      price: priceData?.price || 0,
-      priceChange24h: priceData?.priceChange24h || 0,
-      volume24h: priceData?.volume24h || parseFloat(v.volume24h) || 0,
-      liquidity: priceData?.liquidity || parseFloat(v.liquidityUsd) || 0,
-      fdv: priceData?.fdv || parseFloat(v.fdvInVirtual) || 0,
-      marketCap: priceData?.marketCap || parseFloat(v.mcapInVirtual) || 0,
-      dex: priceData?.dex || '',
-      pairUrl: priceData?.pairUrl || '',
+      // Aliases for dashboard
+      marketCap: mcapInVirtual,
+      fdv: fdvInVirtual,
+      liquidity: liquidityUsd,
 
       // Contract addresses
       tokenAddress: v.preToken,

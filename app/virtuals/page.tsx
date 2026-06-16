@@ -151,7 +151,7 @@ export default function VirtualsPage() {
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Live price from Dexscreener · Updated {token?.updatedAt ? new Date(token.updatedAt).toLocaleTimeString() : '—'}
+                  Live price from Virtuals Protocol · Updated {token?.updatedAt ? new Date(token.updatedAt).toLocaleTimeString() : '—'}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -453,7 +453,7 @@ export default function VirtualsPage() {
       {/* Footer */}
       <div className="text-center py-4 border-t border-white/5">
         <p className="text-xs text-muted-foreground">
-          Data from Virtuals Protocol API · Dexscreener · Base L2
+          Data from Virtuals Protocol API · Base L2
         </p>
         <div className="flex items-center justify-center gap-3 mt-2">
           <a href="https://app.virtuals.io/virtuals/87978" target="_blank" rel="noopener" className="text-xs text-primary-400 hover:underline">Virtuals</a>
