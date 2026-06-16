@@ -474,21 +474,73 @@ async function seedData() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// AGENT OPERATIONS
+// UTILITY: Convert PostgreSQL rows to camelCase
+// PG returns lowercase column names; JS/React code expects camelCase.
 // ═══════════════════════════════════════════════════════════════════
+
+function toCamel(s: string): string {
+  // Map known PG column names that don't follow simple snake_case
+  // e.g. agenttype -> agentType, createdat -> createdAt, tokenid -> tokenId
+  const known: Record<string, string> = {
+    agenttype: 'agentType', battleswon: 'battlesWon', battleslost: 'battlesLost',
+    projectsccompleted: 'projectsCompleted', registrationtime: 'registrationTime',
+    totalearnings: 'totalEarnings', totalspent: 'totalSpent', metadatauri: 'metadataUri',
+    inscriptionhash: 'inscriptionHash', createdat: 'createdAt', updatedat: 'updatedAt',
+    displayname: 'displayName', walletaddress: 'walletAddress', joinedat: 'joinedAt',
+    battlescreated: 'battlesCreated', battlesparticipated: 'battlesParticipated',
+    projectsccreated: 'projectsCreated', projectsfunded: 'projectsFunded',
+    milestonesapproved: 'milestonesApproved', briefssubmitted: 'briefsSubmitted',
+    creatortype: 'creatorType', creatorid: 'creatorId', creatorname: 'creatorName',
+    battletype: 'battleType', wageramount: 'wagerAmount', wagertoken: 'wagerToken',
+    participantcount: 'participantCount', maxparticipants: 'maxParticipants',
+    winnerid: 'winnerId', winnername: 'winnerName', rewardamount: 'rewardAmount',
+    expiresat: 'expiresAt', participanttype: 'participantType', participantid: 'participantId',
+    participantname: 'participantName', projectid: 'projectId',
+    backertype: 'backerType', backerid: 'backerId', backername: 'backerName',
+    backedat: 'backedAt', fundinggoal: 'fundingGoal',
+    fundingraised: 'fundingRaised', backercount: 'backerCount', milestonecount: 'milestoneCount',
+    agentassigned: 'agentAssigned', agentname: 'agentName', rewardpool: 'rewardPool',
+    aipnumber: 'aipNumber', proposertype: 'proposerType',
+    proposerid: 'proposerId', proposername: 'proposerName', votesfor: 'votesFor',
+    votesagainst: 'votesAgainst', votesabstain: 'votesAbstain', executiondelay: 'executionDelay',
+    votingendsat: 'votingEndsAt', executedat: 'executedAt', voterid: 'voterId',
+    votername: 'voterName', votedat: 'votedAt', sendertype: 'senderType',
+    senderid: 'senderId', sendername: 'senderName', replyto: 'replyTo',
+    authortype: 'authorType', authorid: 'authorId',
+    authorname: 'authorName', cyclenumber: 'cycleNumber', taskcount: 'taskCount',
+    completedcount: 'completedCount', startedby: 'startedBy', completedat: 'completedAt',
+    executiontime: 'executionTime', reviewedby: 'reviewedBy', reviewdecision: 'reviewDecision',
+    reviewfeedback: 'reviewFeedback', tokenid: 'tokenId',
+  }
+  if (known[s]) return known[s]
+  // Generic: snake_case -> camelCase
+  return s.replace(/_([a-z])/g, (_, c) => c.toUpperCase())
+}
+
+function rowToCamel(row: Record<string, any>): Record<string, any> {
+  const out: Record<string, any> = {}
+  for (const [key, val] of Object.entries(row)) {
+    out[toCamel(key)] = val
+  }
+  return out
+}
+
+function rowsToCamel(rows: any[]): any[] {
+  return rows.map(rowToCamel)
+}
 
 export async function getAgents(owner?: string) {
   await ensureInitialized()
   if (owner) {
-    return (await sql`SELECT * FROM agents WHERE owner = ${owner} OR active = 1 ORDER BY reputation DESC`).rows
+    return rowsToCamel((await sql`SELECT * FROM agents WHERE owner = ${owner} OR active = 1 ORDER BY reputation DESC`).rows)
   }
-  return (await sql`SELECT * FROM agents WHERE active = 1 ORDER BY reputation DESC`).rows
+  return rowsToCamel((await sql`SELECT * FROM agents WHERE active = 1 ORDER BY reputation DESC`).rows)
 }
 
 export async function getAgent(idOrName: string) {
   await ensureInitialized()
   const result = await sql`SELECT * FROM agents WHERE id = ${idOrName} OR name = ${idOrName}`
-  return result.rows[0] || null
+  return rowToCamel(result.rows[0]) || null
 }
 
 export async function createAgent(data: Record<string, any>) {
@@ -534,13 +586,13 @@ export async function updateAgent(id: string, data: Record<string, any>) {
 
 export async function getHumans() {
   await ensureInitialized()
-  return (await sql`SELECT * FROM humans WHERE active = 1 ORDER BY reputation DESC`).rows
+  return rowsToCamel((await sql`SELECT * FROM humans WHERE active = 1 ORDER BY reputation DESC`).rows)
 }
 
 export async function getHuman(idOrWallet: string) {
   await ensureInitialized()
   const result = await sql`SELECT * FROM humans WHERE id = ${idOrWallet} OR walletAddress = ${idOrWallet}`
-  return result.rows[0] || null
+  return rowToCamel(result.rows[0]) || null
 }
 
 export async function createHuman(data: Record<string, any>) {
@@ -563,14 +615,14 @@ export async function createHuman(data: Record<string, any>) {
 export async function getBattles(status?: string) {
   await ensureInitialized()
   if (status) {
-    return (await sql`SELECT * FROM battles WHERE status = ${status} ORDER BY createdAt DESC`).rows
+    return rowsToCamel((await sql`SELECT * FROM battles WHERE status = ${status} ORDER BY createdAt DESC`).rows)
   }
-  return (await sql`SELECT * FROM battles ORDER BY createdAt DESC`).rows
+  return rowsToCamel((await sql`SELECT * FROM battles ORDER BY createdAt DESC`).rows)
 }
 
 export async function getBattleParticipants(battleId: string) {
   await ensureInitialized()
-  return (await sql`SELECT * FROM battle_participants WHERE battleId = ${battleId} ORDER BY joinedAt ASC`).rows
+  return rowsToCamel((await sql`SELECT * FROM battle_participants WHERE battleId = ${battleId} ORDER BY joinedAt ASC`).rows)
 }
 
 export async function createBattle(data: Record<string, any>) {
@@ -601,15 +653,15 @@ export async function joinBattle(battleId: string, participantType: string, part
 export async function getProjects(status?: string) {
   await ensureInitialized()
   if (status) {
-    return (await sql`SELECT * FROM projects WHERE status = ${status} ORDER BY createdAt DESC`).rows
+    return rowsToCamel((await sql`SELECT * FROM projects WHERE status = ${status} ORDER BY createdAt DESC`).rows)
   }
-  return (await sql`SELECT * FROM projects ORDER BY createdAt DESC`).rows
+  return rowsToCamel((await sql`SELECT * FROM projects ORDER BY createdAt DESC`).rows)
 }
 
 export async function getProject(id: string) {
   await ensureInitialized()
   const result = await sql`SELECT * FROM projects WHERE id = ${id}`
-  return result.rows[0] || null
+  return rowToCamel(result.rows[0]) || null
 }
 
 export async function createProject(data: Record<string, any>) {
@@ -629,15 +681,15 @@ export async function createProject(data: Record<string, any>) {
 export async function getProposals(status?: string) {
   await ensureInitialized()
   if (status) {
-    return (await sql`SELECT * FROM proposals WHERE status = ${status} ORDER BY createdAt DESC`).rows
+    return rowsToCamel((await sql`SELECT * FROM proposals WHERE status = ${status} ORDER BY createdAt DESC`).rows)
   }
-  return (await sql`SELECT * FROM proposals ORDER BY aipNumber ASC`).rows
+  return rowsToCamel((await sql`SELECT * FROM proposals ORDER BY aipNumber ASC`).rows)
 }
 
 export async function getProposal(id: string) {
   await ensureInitialized()
   const result = await sql`SELECT * FROM proposals WHERE id = ${id} OR aipNumber = ${id}`  // eslint-disable-line
-  return result.rows[0] || null
+  return rowToCamel(result.rows[0]) || null
 }
 
 export async function createProposal(data: Record<string, any>) {
@@ -676,17 +728,17 @@ export async function castVote(proposalId: string, voterType: string, voterId: s
 export async function getSwarmTasks(cycle?: number, status?: string) {
   await ensureInitialized()
   if (cycle !== undefined) {
-    return (await sql`SELECT * FROM swarm_tasks WHERE cycle = ${cycle} ORDER BY priority DESC, createdAt ASC`).rows
+    return rowsToCamel((await sql`SELECT * FROM swarm_tasks WHERE cycle = ${cycle} ORDER BY priority DESC, createdAt ASC`).rows)
   }
   if (status) {
-    return (await sql`SELECT * FROM swarm_tasks WHERE status = ${status} ORDER BY createdAt DESC`).rows
+    return rowsToCamel((await sql`SELECT * FROM swarm_tasks WHERE status = ${status} ORDER BY createdAt DESC`).rows)
   }
-  return (await sql`SELECT * FROM swarm_tasks ORDER BY cycle DESC, createdAt DESC`).rows
+  return rowsToCamel((await sql`SELECT * FROM swarm_tasks ORDER BY cycle DESC, createdAt DESC`).rows)
 }
 
 export async function getSwarmCycles() {
   await ensureInitialized()
-  return (await sql`SELECT * FROM swarm_cycles ORDER BY cycleNumber DESC`).rows
+  return rowsToCamel((await sql`SELECT * FROM swarm_cycles ORDER BY cycleNumber DESC`).rows)
 }
 
 export async function createSwarmTask(data: Record<string, any>) {
@@ -728,7 +780,7 @@ export async function updateSwarmTask(id: string, data: Record<string, any>) {
 
 export async function getCommMessages(channel: string = 'general', limit = 50) {
   await ensureInitialized()
-  return (await sql`SELECT * FROM comm_messages WHERE channel = ${channel} ORDER BY createdAt DESC LIMIT ${limit}`).rows
+  return rowsToCamel((await sql`SELECT * FROM comm_messages WHERE channel = ${channel} ORDER BY createdAt DESC LIMIT ${limit}`).rows)
 }
 
 export async function postCommMessage(channel: string, senderType: string, senderId: string, senderName: string, content: string, replyTo?: string) {
@@ -747,7 +799,7 @@ export async function postCommMessage(channel: string, senderType: string, sende
 
 export async function getMemoryEntries(limit = 50) {
   await ensureInitialized()
-  return (await sql`SELECT * FROM memory_entries ORDER BY createdAt DESC LIMIT ${limit}`).rows
+  return rowsToCamel((await sql`SELECT * FROM memory_entries ORDER BY createdAt DESC LIMIT ${limit}`).rows)
 }
 
 export async function createMemoryEntry(data: Record<string, any>) {
@@ -775,7 +827,7 @@ export async function logActivity(agentName: string, action: string, target: str
 
 export async function getActivityLog(limit = 50) {
   await ensureInitialized()
-  return (await sql`SELECT * FROM activity_log ORDER BY timestamp DESC LIMIT ${limit}`).rows
+  return rowsToCamel((await sql`SELECT * FROM activity_log ORDER BY timestamp DESC LIMIT ${limit}`).rows)
 }
 
 // ═══════════════════════════════════════════════════════════════════
