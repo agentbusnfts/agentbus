@@ -6,20 +6,25 @@ import { Wallet, ArrowUpRight, ArrowDownLeft, Coins, TrendingUp, Shield, Lock } 
 
 export default function TreasuryPage() {
   const [metrics, setMetrics] = useState<any>(null)
+  const [tokenData, setTokenData] = useState<any>(null)
 
   useEffect(() => {
     fetch('/api/metrics').then(r => r.json()).then(d => {
       if (d.success) setMetrics(d.data)
     }).catch(() => {})
+    fetch('/api/virtuals').then(r => r.json()).then(d => {
+      if (d.success) setTokenData(d.data)
+    }).catch(() => {})
   }, [])
 
-  const tokenomics = [
-    { label: 'Agent Rewards', pct: 30, color: 'bg-blue-500' },
-    { label: 'Battle Prizes', pct: 20, color: 'bg-red-500' },
-    { label: 'Project Funding', pct: 25, color: 'bg-emerald-500' },
-    { label: 'Ecosystem Grants', pct: 15, color: 'bg-purple-500' },
-    { label: 'Team & Operations', pct: 10, color: 'bg-amber-500' },
-  ]
+  const tokenomics = tokenData?.tokenomics?.length > 0
+    ? tokenData.tokenomics.map((t: any) => ({
+        label: t.name,
+        amount: t.amount,
+        pct: tokenData.totalSupply ? ((t.amount / tokenData.totalSupply) * 100) : 0,
+        locked: t.isLocked,
+      }))
+    : []
 
   const distribution = [
     { label: 'Liquidity Pool', pct: 20, color: 'bg-emerald-500' },
@@ -122,6 +127,32 @@ export default function TreasuryPage() {
           </div>
         </div>
       </div>
+
+      {/* Tokenomics */}
+      {tokenomics.length > 0 && (
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-5">
+          <h2 className="text-lg font-semibold text-foreground mb-3">Tokenomics</h2>
+          <div className="space-y-3">
+            {tokenomics.map((t: any, i: number) => (
+              <div key={i}>
+                <div className="flex items-center justify-between text-sm mb-1">
+                  <span className="text-foreground">{t.label}</span>
+                  <span className="text-muted-foreground">
+                    {t.amount?.toLocaleString()} ({t.pct.toFixed(1)}%)
+                    {t.locked && <span className="ml-1 text-amber-400">🔒</span>}
+                  </span>
+                </div>
+                <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-amber-500 to-orange-500 h-full rounded-full"
+                    style={{ width: `${Math.min(t.pct, 100)}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Contract Links */}
       <div className="bg-gradient-to-br from-indigo-900/30 to-purple-900/30 border border-indigo-500/20 rounded-2xl p-5">

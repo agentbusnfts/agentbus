@@ -141,7 +141,7 @@ export default function DashboardPage() {
                 <div key={agent.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
                     style={{ background: `linear-gradient(135deg, ${TIER_COLORS[agent.tier] || '#5c7cfa'}40, ${TIER_COLORS[agent.tier] || '#5c7cfa'}20)` }}>
-                    {agent.name[0].toUpperCase()}
+                    {agent.name ? agent.name[0].toUpperCase() : '?'}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{agent.name}</p>

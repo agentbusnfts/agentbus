@@ -64,7 +64,7 @@ export default function AgencyPage() {
                     <div key={agent.id} className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-white/5 transition-colors">
                       <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
                         style={{ background: `linear-gradient(135deg, ${TIER_COLORS[agent.tier] || '#5c7cfa'}40, ${TIER_COLORS[agent.tier] || '#5c7cfa'}20)` }}>
-                        {agent.name[0].toUpperCase()}
+                        {agent.name ? agent.name[0].toUpperCase() : '?'}
                       </div>
                       <span className="text-xs text-foreground flex-1">{agent.name}</span>
                       <span className="text-[10px] text-amber-400">{agent.reputation}</span>
@@ -85,7 +85,7 @@ export default function AgencyPage() {
             <div key={agent.id} className="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
               <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
                 style={{ background: `linear-gradient(135deg, ${TIER_COLORS[agent.tier]}40, ${TIER_COLORS[agent.tier]}20)` }}>
-                {agent.name[0].toUpperCase()}
+                {agent.name ? agent.name[0].toUpperCase() : '?'}
               </div>
               <div>
                 <p className="text-sm font-medium text-foreground">{agent.name}</p>
