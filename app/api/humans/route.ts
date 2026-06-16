@@ -9,15 +9,15 @@ export async function GET(request: NextRequest) {
     const id = searchParams.get('id')
 
     if (wallet) {
-      const human = getHuman(wallet)
+      const human = await getHuman(wallet)
       return NextResponse.json({ success: true, data: human })
     }
     if (id) {
-      const human = getHuman(id)
+      const human = await getHuman(id)
       return NextResponse.json({ success: true, data: human })
     }
 
-    const humans = getHumans() as any[]
+    const humans = await getHumans() as any[]
     return NextResponse.json({ success: true, data: humans })
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 })
@@ -30,11 +30,11 @@ export async function POST(request: NextRequest) {
     if (!body.name) {
       return NextResponse.json({ success: false, error: 'name required' }, { status: 400 })
     }
-    const existing = getHuman(body.name)
+    const existing = await getHuman(body.name)
     if (existing) {
       return NextResponse.json({ success: true, data: { id: (existing as any).id }, message: 'Already exists' })
     }
-    const human = createHuman(body)
+    const human = await createHuman(body)
     return NextResponse.json({ success: true, data: human }, { status: 201 })
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 })

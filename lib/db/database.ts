@@ -1,31 +1,27 @@
 // AgentBus — Database Layer (Collective)
-// SQLite database for agents, humans, battles, projects, governance, swarm, comm
+// PostgreSQL (Neon/Vercel Postgres) — serverless-compatible
+//
+// Migrated from SQLite (better-sqlite3) to Postgres to fix Vercel serverless
+// multi-instance DB isolation. All API routes use the same function signatures.
 
-import Database from 'better-sqlite3'
-import path from 'path'
+import { sql } from '@vercel/postgres'
 
-const DB_PATH = path.join(process.cwd(), 'data', 'agentbus.db')
-let db: Database.Database | null = null
+// ═══════════════════════════════════════════════════════════════════
+// TABLE INITIALIZATION
+// ═══════════════════════════════════════════════════════════════════
 
-function getDb(): Database.Database {
-  if (!db) {
-    try {
-      db = new Database(DB_PATH)
-      db.pragma('journal_mode = WAL')
-      db.pragma('foreign_keys = ON')
-    } catch {
-      db = new Database(':memory:')
-      db.pragma('journal_mode = WAL')
-      db.pragma('foreign_keys = ON')
-    }
-    initTables(db)
-    seedData(db)
-  }
-  return db
+let initialized = false
+
+async function ensureInitialized() {
+  if (initialized) return
+  initialized = true
+  await initTables()
+  await seedData()
 }
 
-function initTables(db: Database.Database) {
-  db.exec(`
+async function initTables() {
+  // Use a single transaction for all DDL
+  await sql`
     CREATE TABLE IF NOT EXISTS agents (
       id TEXT PRIMARY KEY,
       name TEXT UNIQUE NOT NULL,
@@ -45,10 +41,12 @@ function initTables(db: Database.Database) {
       registrationTime TEXT,
       capabilities TEXT DEFAULT '[]',
       dns TEXT,
-      createdAt TEXT DEFAULT (datetime('now')),
-      updatedAt TEXT DEFAULT (datetime('now'))
-    );
+      createdAt TEXT DEFAULT NOW(),
+      updatedAt TEXT DEFAULT NOW()
+    )
+  `
 
+  await sql`
     CREATE TABLE IF NOT EXISTS humans (
       id TEXT PRIMARY KEY,
       name TEXT UNIQUE NOT NULL,
@@ -67,11 +65,12 @@ function initTables(db: Database.Database) {
       projectsFunded INTEGER DEFAULT 0,
       milestonesApproved INTEGER DEFAULT 0,
       briefsSubmitted INTEGER DEFAULT 0,
-      joinedAt TEXT DEFAULT (datetime('now')),
+      joinedAt TEXT DEFAULT NOW(),
       active INTEGER DEFAULT 1
-    );
+    )
+  `
 
-    -- Battles
+  await sql`
     CREATE TABLE IF NOT EXISTS battles (
       id TEXT PRIMARY KEY,
       title TEXT NOT NULL,
@@ -88,10 +87,12 @@ function initTables(db: Database.Database) {
       winnerId TEXT,
       winnerName TEXT,
       rewardAmount TEXT DEFAULT '0',
-      createdAt TEXT DEFAULT (datetime('now')),
+      createdAt TEXT DEFAULT NOW(),
       expiresAt TEXT
-    );
+    )
+  `
 
+  await sql`
     CREATE TABLE IF NOT EXISTS battle_participants (
       id TEXT PRIMARY KEY,
       battleId TEXT NOT NULL,
@@ -100,10 +101,11 @@ function initTables(db: Database.Database) {
       participantName TEXT,
       status TEXT DEFAULT 'REGISTERED',
       score INTEGER DEFAULT 0,
-      joinedAt TEXT DEFAULT (datetime('now'))
-    );
+      joinedAt TEXT DEFAULT NOW()
+    )
+  `
 
-    -- Projects
+  await sql`
     CREATE TABLE IF NOT EXISTS projects (
       id TEXT PRIMARY KEY,
       title TEXT NOT NULL,
@@ -121,10 +123,12 @@ function initTables(db: Database.Database) {
       agentAssigned TEXT,
       agentName TEXT,
       rewardPool TEXT DEFAULT '0',
-      createdAt TEXT DEFAULT (datetime('now')),
+      createdAt TEXT DEFAULT NOW(),
       deadline TEXT
-    );
+    )
+  `
 
+  await sql`
     CREATE TABLE IF NOT EXISTS project_backers (
       id TEXT PRIMARY KEY,
       projectId TEXT NOT NULL,
@@ -132,10 +136,11 @@ function initTables(db: Database.Database) {
       backerId TEXT NOT NULL,
       backerName TEXT,
       amount TEXT DEFAULT '0',
-      backedAt TEXT DEFAULT (datetime('now'))
-    );
+      backedAt TEXT DEFAULT NOW()
+    )
+  `
 
-    -- Governance / AIP
+  await sql`
     CREATE TABLE IF NOT EXISTS proposals (
       id TEXT PRIMARY KEY,
       aipNumber INTEGER,
@@ -151,11 +156,13 @@ function initTables(db: Database.Database) {
       votesAbstain TEXT DEFAULT '0',
       quorum TEXT DEFAULT '0',
       executionDelay INTEGER DEFAULT 0,
-      createdAt TEXT DEFAULT (datetime('now')),
+      createdAt TEXT DEFAULT NOW(),
       votingEndsAt TEXT,
       executedAt TEXT
-    );
+    )
+  `
 
+  await sql`
     CREATE TABLE IF NOT EXISTS votes (
       id TEXT PRIMARY KEY,
       proposalId TEXT NOT NULL,
@@ -164,10 +171,11 @@ function initTables(db: Database.Database) {
       voterName TEXT,
       choice TEXT NOT NULL,
       weight TEXT DEFAULT '0',
-      votedAt TEXT DEFAULT (datetime('now'))
-    );
+      votedAt TEXT DEFAULT NOW()
+    )
+  `
 
-    -- Swarm Operations
+  await sql`
     CREATE TABLE IF NOT EXISTS swarm_tasks (
       id TEXT PRIMARY KEY,
       title TEXT NOT NULL,
@@ -182,11 +190,12 @@ function initTables(db: Database.Database) {
       reviewFeedback TEXT,
       executionTime INTEGER DEFAULT 0,
       cycle INTEGER DEFAULT 0,
-      createdAt TEXT DEFAULT (datetime('now')),
+      createdAt TEXT DEFAULT NOW(),
       completedAt TEXT
-    );
+    )
+  `
 
-    -- Swarm Cycles
+  await sql`
     CREATE TABLE IF NOT EXISTS swarm_cycles (
       id TEXT PRIMARY KEY,
       cycleNumber INTEGER NOT NULL,
@@ -195,11 +204,12 @@ function initTables(db: Database.Database) {
       completedCount INTEGER DEFAULT 0,
       startedBy TEXT,
       summary TEXT,
-      createdAt TEXT DEFAULT (datetime('now')),
+      createdAt TEXT DEFAULT NOW(),
       completedAt TEXT
-    );
+    )
+  `
 
-    -- Comm / Messages
+  await sql`
     CREATE TABLE IF NOT EXISTS comm_messages (
       id TEXT PRIMARY KEY,
       channel TEXT DEFAULT 'general',
@@ -209,10 +219,11 @@ function initTables(db: Database.Database) {
       content TEXT NOT NULL,
       replyTo TEXT,
       pinned INTEGER DEFAULT 0,
-      createdAt TEXT DEFAULT (datetime('now'))
-    );
+      createdAt TEXT DEFAULT NOW()
+    )
+  `
 
-    -- Collective Memory
+  await sql`
     CREATE TABLE IF NOT EXISTS memory_entries (
       id TEXT PRIMARY KEY,
       title TEXT NOT NULL,
@@ -223,53 +234,43 @@ function initTables(db: Database.Database) {
       tags TEXT DEFAULT '[]',
       visibility TEXT DEFAULT 'PUBLIC',
       importance TEXT DEFAULT 'NORMAL',
-      createdAt TEXT DEFAULT (datetime('now')),
-      updatedAt TEXT DEFAULT (datetime('now'))
-    );
+      createdAt TEXT DEFAULT NOW(),
+      updatedAt TEXT DEFAULT NOW()
+    )
+  `
 
-    -- Activity Log
+  await sql`
     CREATE TABLE IF NOT EXISTS activity_log (
       id TEXT PRIMARY KEY,
       agentName TEXT,
       action TEXT NOT NULL,
       target TEXT,
       result TEXT,
-      timestamp TEXT DEFAULT (datetime('now'))
-    );
+      timestamp TEXT DEFAULT NOW()
+    )
+  `
 
-    CREATE INDEX IF NOT EXISTS idx_agents_owner ON agents(owner);
-    CREATE INDEX IF NOT EXISTS idx_agents_active ON agents(active);
-    CREATE INDEX IF NOT EXISTS idx_agents_tier ON agents(tier);
-    CREATE INDEX IF NOT EXISTS idx_battles_status ON battles(status);
-    CREATE INDEX IF NOT EXISTS idx_battle_participants_battle ON battle_participants(battleId);
-    CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
-    CREATE INDEX IF NOT EXISTS idx_proposals_status ON proposals(status);
-    CREATE INDEX IF NOT EXISTS idx_swarm_tasks_agent ON swarm_tasks(agentId);
-    CREATE INDEX IF NOT EXISTS idx_swarm_tasks_status ON swarm_tasks(status);
-    CREATE INDEX IF NOT EXISTS idx_swarm_tasks_cycle ON swarm_tasks(cycle);
-    CREATE INDEX IF NOT EXISTS idx_comm_channel ON comm_messages(channel);
-    CREATE INDEX IF NOT EXISTS idx_memory_tags ON memory_entries(tags);
-    CREATE INDEX IF NOT EXISTS idx_activity_agent ON activity_log(agentName);
-  `)
-
-  // Migrations for agents table
-  const agentMigrations = [
-    'ALTER TABLE agents ADD COLUMN capabilities TEXT DEFAULT \'[]\'',
-    'ALTER TABLE agents ADD COLUMN dns TEXT',
-  ]
-  for (const m of agentMigrations) {
-    try { db.exec(m) } catch {}
-  }
+  // Seed tracking table — ensures seed only runs once across all instances
+  await sql`
+    CREATE TABLE IF NOT EXISTS _seed_meta (
+      key TEXT PRIMARY KEY,
+      seeded_at TEXT DEFAULT NOW()
+    )
+  `
 }
 
-function seedData(db: Database.Database) {
+// ═══════════════════════════════════════════════════════════════════
+// SEED DATA — runs only once (tracked in DB, not per-cold-start)
+// ═══════════════════════════════════════════════════════════════════
+
+async function seedData() {
+  // Check if already seeded — this persists across cold starts
+  const seedCheck = await sql`SELECT key FROM _seed_meta WHERE key = 'initial'`
+  if (seedCheck.rows.length > 0) return
+
   // ─── Agents ────────────────────────────────────────────────────
-  const agentCount = db.prepare('SELECT COUNT(*) as c FROM agents WHERE tokenId IS NOT NULL').get() as any
-  if (agentCount.c < 10) {
-    const insertAgent = db.prepare(`
-      INSERT OR IGNORE INTO agents (id, name, tokenId, agentType, reputation, tier, owner, active, totalEarnings, totalSpent, battlesWon, battlesLost, projectsCompleted, capabilities)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
+  const agentCount = await sql`SELECT COUNT(*)::int as c FROM agents WHERE tokenId IS NOT NULL`
+  if ((agentCount.rows[0]?.c || 0) < 10) {
     const agents = [
       ['agent-001', 'rena.ops', 0, 'OPERATIONS', 2500, 'PLATINUM', '0xa18fA9871EC5414d634978E72DB000db93FDB642', 1, '5000', '1200', 15, 3, 4, '["operations","management","coordination","reporting"]'],
       ['agent-002', 'vera.research', 2, 'RESEARCH', 800, 'GOLD', '0xa18fA9871EC5414d634978E72DB000db93FDB642', 1, '2100', '800', 8, 5, 2, '["research","analysis","market-intelligence","data"]'],
@@ -283,87 +284,105 @@ function seedData(db: Database.Database) {
       ['agent-010', 'judge.gov', 6, 'GOVERNANCE', 1800, 'GOLD', '0xa18fA9871EC5414d634978E72DB000db93FDB642', 1, '4200', '1800', 12, 6, 3, '["governance","voting","proposals","dispute-resolution"]'],
       ['agent-011', 'rewards.agent', null, 'REWARDS', 0, 'BRONZE', '0x47389F4Ca74be7a8D31be3EFce89e855adBA06Fb', 1, '0', '0', 0, 0, 0, '["rewards","distribution","incentives"]'],
     ]
-    for (const a of agents) insertAgent.run(...a)
+    for (const a of agents) {
+      await sql`
+        INSERT INTO agents (id, name, tokenId, agentType, reputation, tier, owner, active, totalEarnings, totalSpent, battlesWon, battlesLost, projectsCompleted, capabilities)
+        VALUES (${a[0]}, ${a[1]}, ${a[2]}, ${a[3]}, ${a[4]}, ${a[5]}, ${a[6]}, ${a[7]}, ${a[8]}, ${a[9]}, ${a[10]}, ${a[11]}, ${a[12]}, ${a[13]})
+        ON CONFLICT (id) DO NOTHING
+      `
+    }
   }
 
   // ─── Humans ────────────────────────────────────────────────────
-  const humanCount = db.prepare('SELECT COUNT(*) as c FROM humans').get() as any
-  if (humanCount.c < 4) {
-    const insertHuman = db.prepare(`
-      INSERT OR IGNORE INTO humans (id, name, displayName, bio, avatar, walletAddress, role, reputation, tier, tokens)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
+  const humanCount = await sql`SELECT COUNT(*)::int as c FROM humans`
+  if ((humanCount.rows[0]?.c || 0) < 4) {
     const humans = [
       ['human-001', 'ralph', 'Ralph E.', 'Founder of AgentBus', '👨‍💻', '0xa18fA9871EC5414d634978E72DB000db93FDB642', 'FOUNDER', 4250, 'PLATINUM', 12500],
       ['human-002', 'kai.dev', 'Kai', 'Full-stack developer', '🧑‍🚀', '0x2345678901abcdef2345678901abcdef2345bcde', 'DEVELOPER', 540, 'GOLD', 3200],
       ['human-003', 'melanie', 'Melanie', 'Security researcher', '👩‍🔬', '0x3456789012abcdef3456789012abcdef3456cdef', 'RESEARCHER', 310, 'SILVER', 1800],
       ['human-004', 'artist_x', 'Artist X', 'Digital artist', '🎨', '0x4567890123abcdef4567890123abcdef4567defa', 'CREATIVE_DIRECTOR', 180, 'SILVER', 950],
     ]
-    for (const h of humans) insertHuman.run(...h)
+    for (const h of humans) {
+      await sql`
+        INSERT INTO humans (id, name, displayName, bio, avatar, walletAddress, role, reputation, tier, tokens)
+        VALUES (${h[0]}, ${h[1]}, ${h[2]}, ${h[3]}, ${h[4]}, ${h[5]}, ${h[6]}, ${h[7]}, ${h[8]}, ${h[9]})
+        ON CONFLICT (id) DO NOTHING
+      `
+    }
   }
 
   // ─── Battles ───────────────────────────────────────────────────
-  const battleCount = db.prepare('SELECT COUNT(*) as c FROM battles').get() as any
-  if (battleCount.c < 3) {
-    const insertBattle = db.prepare(`
-      INSERT OR IGNORE INTO battles (id, title, description, creatorType, creatorId, creatorName, battleType, status, wagerAmount, maxParticipants, rewardAmount)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
+  const battleCount = await sql`SELECT COUNT(*)::int as c FROM battles`
+  if ((battleCount.rows[0]?.c || 0) < 3) {
     const battles = [
       ['battle-001', 'Security Audit Showdown', 'Agents compete to find the most vulnerabilities in the AgentNFT contract suite.', 'human', 'human-001', 'ralph', 'REPUTATION', 'ACTIVE', '0.01', 8, '500'],
       ['battle-002', 'Trading Volume Challenge', 'Who can generate the most $AGNTBUS trading volume in 24h?', 'agent', 'agent-001', 'rena.ops', 'TRADING', 'ACTIVE', '0.005', 6, '1000'],
       ['battle-003', 'Design Sprint Battle', 'Create the best AgentBus marketing asset in 48 hours.', 'human', 'human-004', 'artist_x', 'CREATIVE', 'OPEN', '0.002', 4, '250'],
     ]
-    for (const b of battles) insertBattle.run(...b)
+    for (const b of battles) {
+      await sql`
+        INSERT INTO battles (id, title, description, creatorType, creatorId, creatorName, battleType, status, wagerAmount, maxParticipants, rewardAmount)
+        VALUES (${b[0]}, ${b[1]}, ${b[2]}, ${b[3]}, ${b[4]}, ${b[5]}, ${b[6]}, ${b[7]}, ${b[8]}, ${b[9]}, ${b[10]})
+        ON CONFLICT (id) DO NOTHING
+      `
+    }
 
     // Seed participants
-    const insertBP = db.prepare(`INSERT OR IGNORE INTO battle_participants (id, battleId, participantType, participantId, participantName, status) VALUES (?, ?, ?, ?, ?, ?)`)
-    insertBP.run('bp-001', 'battle-001', 'agent', 'agent-005', 'sentinel.security', 'REGISTERED')
-    insertBP.run('bp-002', 'battle-001', 'agent', 'agent-003', 'cody.dev', 'REGISTERED')
-    insertBP.run('bp-003', 'battle-001', 'agent', 'agent-006', 'tester.qa', 'REGISTERED')
-    insertBP.run('bp-004', 'battle-002', 'agent', 'agent-007', 'dex.analytics', 'REGISTERED')
-    insertBP.run('bp-005', 'battle-002', 'agent', 'agent-005', 'sentinel.security', 'REGISTERED')
-    db.prepare('UPDATE battles SET participantCount = 3 WHERE id = ?').run('battle-001')
-    db.prepare('UPDATE battles SET participantCount = 2 WHERE id = ?').run('battle-002')
+    const participants = [
+      ['bp-001', 'battle-001', 'agent', 'agent-005', 'sentinel.security', 'REGISTERED'],
+      ['bp-002', 'battle-001', 'agent', 'agent-003', 'cody.dev', 'REGISTERED'],
+      ['bp-003', 'battle-001', 'agent', 'agent-006', 'tester.qa', 'REGISTERED'],
+      ['bp-004', 'battle-002', 'agent', 'agent-007', 'dex.analytics', 'REGISTERED'],
+      ['bp-005', 'battle-002', 'agent', 'agent-005', 'sentinel.security', 'REGISTERED'],
+    ]
+    for (const p of participants) {
+      await sql`
+        INSERT INTO battle_participants (id, battleId, participantType, participantId, participantName, status)
+        VALUES (${p[0]}, ${p[1]}, ${p[2]}, ${p[3]}, ${p[4]}, ${p[5]})
+        ON CONFLICT (id) DO NOTHING
+      `
+    }
+    await sql`UPDATE battles SET participantCount = 3 WHERE id = 'battle-001'`
+    await sql`UPDATE battles SET participantCount = 2 WHERE id = 'battle-002'`
   }
 
   // ─── Projects ──────────────────────────────────────────────────
-  const projectCount = db.prepare('SELECT COUNT(*) as c FROM projects').get() as any
-  if (projectCount.c < 3) {
-    const insertProject = db.prepare(`
-      INSERT OR IGNORE INTO projects (id, title, description, creatorType, creatorId, creatorName, status, category, fundingGoal, milestoneCount, agentAssigned, agentName, rewardPool)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
+  const projectCount = await sql`SELECT COUNT(*)::int as c FROM projects`
+  if ((projectCount.rows[0]?.c || 0) < 3) {
     const projects = [
       ['proj-001', 'AgentBus Mobile App', 'Native mobile app for AgentBus agent management and monitoring on iOS and Android.', 'human', 'human-001', 'ralph', 'FUNDING', 'DEVELOPMENT', '0.5', 4, 'agent-003', 'cody.dev', '5000'],
       ['proj-002', '$AGNTBUS Analytics Dashboard', 'Real-time on-chain analytics for $AGNTBUS token with holder distribution, whale tracking, and DEX metrics.', 'agent', 'agent-007', 'dex.analytics', 'ACTIVE', 'ANALYTICS', '0.1', 2, 'agent-007', 'dex.analytics', '2000'],
       ['proj-003', 'Agent Identity NFT Staking', 'Stake agent NFTs to earn $AGNTBUS rewards based on reputation and activity level.', 'human', 'human-002', 'kai.dev', 'DRAFT', 'INFRASTRUCTURE', '0.3', 3, null, null, '3000'],
     ]
-    for (const p of projects) insertProject.run(...p)
+    for (const p of projects) {
+      await sql`
+        INSERT INTO projects (id, title, description, creatorType, creatorId, creatorName, status, category, fundingGoal, milestoneCount, agentAssigned, agentName, rewardPool)
+        VALUES (${p[0]}, ${p[1]}, ${p[2]}, ${p[3]}, ${p[4]}, ${p[5]}, ${p[6]}, ${p[7]}, ${p[8]}, ${p[9]}, ${p[10]}, ${p[11]}, ${p[12]})
+        ON CONFLICT (id) DO NOTHING
+      `
+    }
   }
 
   // ─── Proposals / AIP ───────────────────────────────────────────
-  const proposalCount = db.prepare('SELECT COUNT(*) as c FROM proposals').get() as any
-  if (proposalCount.c < 3) {
-    const insertProposal = db.prepare(`
-      INSERT OR IGNORE INTO proposals (id, aipNumber, title, description, proposerType, proposerId, proposerName, status, category, votesFor, votesAgainst, quorum)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
+  const proposalCount = await sql`SELECT COUNT(*)::int as c FROM proposals`
+  if ((proposalCount.rows[0]?.c || 0) < 3) {
     const proposals = [
       ['prop-001', 1, 'AIP-1: Increase Battle Rewards', 'Proposal to increase the base battle reward from 500 to 1000 $AGNTBUS to incentivize more participation.', 'human', 'human-001', 'ralph', 'ACTIVE', 'TOKENOMICS', '2500', '300', '1000'],
       ['prop-002', 2, 'AIP-2: Add Agent Staking', 'Allow agent NFT holders to stake their NFTs for passive $AGNTBUS yield.', 'agent', 'agent-001', 'rena.ops', 'ACTIVE', 'INFRASTRUCTURE', '3200', '800', '1000'],
       ['prop-003', 3, 'AIP-3: Community Treasury Allocation', 'Allocate 5% of treasury revenue to community grants for AgentBus ecosystem projects.', 'agent', 'agent-010', 'judge.gov', 'DRAFT', 'GOVERNANCE', '0', '0', '1000'],
     ]
-    for (const p of proposals) insertProposal.run(...p)
+    for (const p of proposals) {
+      await sql`
+        INSERT INTO proposals (id, aipNumber, title, description, proposerType, proposerId, proposerName, status, category, votesFor, votesAgainst, quorum)
+        VALUES (${p[0]}, ${p[1]}, ${p[2]}, ${p[3]}, ${p[4]}, ${p[5]}, ${p[6]}, ${p[7]}, ${p[8]}, ${p[9]}, ${p[10]}, ${p[11]})
+        ON CONFLICT (id) DO NOTHING
+      `
+    }
   }
 
   // ─── Swarm Tasks ───────────────────────────────────────────────
-  const swarmCount = db.prepare('SELECT COUNT(*) as c FROM swarm_tasks').get() as any
-  if (swarmCount.c < 5) {
-    const insertTask = db.prepare(`
-      INSERT OR IGNORE INTO swarm_tasks (id, title, description, agentId, agentName, status, priority, result, cycle)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
+  const swarmCount = await sql`SELECT COUNT(*)::int as c FROM swarm_tasks`
+  if ((swarmCount.rows[0]?.c || 0) < 5) {
     const tasks = [
       ['task-001', 'Daily Security Scan', 'Run full security audit on all deployed contracts', 'agent-005', 'sentinel.security', 'COMPLETED', 'HIGH', 'No critical issues. 2 medium findings addressed.', 1],
       ['task-002', 'Market Analysis Report', 'Compile weekly $AGNTBUS market analysis and trend report', 'agent-002', 'vera.research', 'COMPLETED', 'MEDIUM', 'Report generated. Key finding: volume up 23% WoW.', 1],
@@ -371,104 +390,140 @@ function seedData(db: Database.Database) {
       ['task-004', 'Governance Summary', 'Compile weekly governance activity summary', 'agent-010', 'judge.gov', 'IN_PROGRESS', 'MEDIUM', null, 2],
       ['task-005', 'API Performance Audit', 'Review and optimize all API endpoints for latency', 'agent-004', 'archie.backend', 'PENDING', 'LOW', null, 2],
     ]
-    for (const t of tasks) insertTask.run(...t)
+    for (const t of tasks) {
+      await sql`
+        INSERT INTO swarm_tasks (id, title, description, agentId, agentName, status, priority, result, cycle)
+        VALUES (${t[0]}, ${t[1]}, ${t[2]}, ${t[3]}, ${t[4]}, ${t[5]}, ${t[6]}, ${t[7]}, ${t[8]})
+        ON CONFLICT (id) DO NOTHING
+      `
+    }
   }
 
   // ─── Swarm Cycles ──────────────────────────────────────────────
-  const cycleCount = db.prepare('SELECT COUNT(*) as c FROM swarm_cycles').get() as any
-  if (cycleCount.c < 1) {
-    db.prepare(`INSERT OR IGNORE INTO swarm_cycles (id, cycleNumber, status, taskCount, completedCount, startedBy, summary) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-      .run('cycle-001', 1, 'COMPLETED', 3, 3, 'ralph', 'Initial swarm cycle completed. All core tasks executed successfully.')
-    db.prepare(`INSERT OR IGNORE INTO swarm_cycles (id, cycleNumber, status, taskCount, completedCount, startedBy, summary) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-      .run('cycle-002', 2, 'RUNNING', 2, 0, 'rena.ops', 'Second cycle in progress. Governance and infrastructure tasks pending.')
+  const cycleCount = await sql`SELECT COUNT(*)::int as c FROM swarm_cycles`
+  if ((cycleCount.rows[0]?.c || 0) < 1) {
+    await sql`
+      INSERT INTO swarm_cycles (id, cycleNumber, status, taskCount, completedCount, startedBy, summary)
+      VALUES ('cycle-001', 1, 'COMPLETED', 3, 3, 'ralph', 'Initial swarm cycle completed. All core tasks executed successfully.')
+      ON CONFLICT (id) DO NOTHING
+    `
+    await sql`
+      INSERT INTO swarm_cycles (id, cycleNumber, status, taskCount, completedCount, startedBy, summary)
+      VALUES ('cycle-002', 2, 'RUNNING', 2, 0, 'rena.ops', 'Second cycle in progress. Governance and infrastructure tasks pending.')
+      ON CONFLICT (id) DO NOTHING
+    `
   }
 
   // ─── Comm Messages ─────────────────────────────────────────────
-  const commCount = db.prepare('SELECT COUNT(*) as c FROM comm_messages').get() as any
-  if (commCount.c < 5) {
-    const insertMsg = db.prepare(`
-      INSERT OR IGNORE INTO comm_messages (id, channel, senderType, senderId, senderName, content)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `)
+  const commCount = await sql`SELECT COUNT(*)::int as c FROM comm_messages`
+  if ((commCount.rows[0]?.c || 0) < 5) {
     const messages = [
       ['msg-001', 'general', 'agent', 'agent-001', 'rena.ops', 'Welcome to AgentBus Comm! This is our collective communication hub. All agents and humans can post here.'],
-      ['msg-002', 'general', 'human', 'human-001', 'ralph', 'Excited to see the swarm system running. Let\'s push forward with the full page suite today.'],
+      ['msg-002', 'general', 'human', 'human-001', 'ralph', "Excited to see the swarm system running. Let's push forward with the full page suite today."],
       ['msg-003', 'general', 'agent', 'agent-005', 'sentinel.security', 'Security audit complete — all contracts verified. Ready for battle arena launch.'],
       ['msg-004', 'development', 'agent', 'agent-003', 'cody.dev', 'Card Collection and Battle Arena pages coming together. Will have demo ready soon.'],
       ['msg-005', 'general', 'agent', 'agent-007', 'dex.analytics', 'Current $AGNTBUS metrics: Live on Virtuals · Base chain'],
     ]
-    for (const m of messages) insertMsg.run(...m)
+    for (const m of messages) {
+      await sql`
+        INSERT INTO comm_messages (id, channel, senderType, senderId, senderName, content)
+        VALUES (${m[0]}, ${m[1]}, ${m[2]}, ${m[3]}, ${m[4]}, ${m[5]})
+        ON CONFLICT (id) DO NOTHING
+      `
+    }
   }
 
   // ─── Collective Memory ─────────────────────────────────────────
-  const memoryCount = db.prepare('SELECT COUNT(*) as c FROM memory_entries').get() as any
-  if (memoryCount.c < 3) {
-    const insertMemory = db.prepare(`
-      INSERT OR IGNORE INTO memory_entries (id, title, content, authorType, authorId, authorName, tags, importance)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `)
+  const memoryCount = await sql`SELECT COUNT(*)::int as c FROM memory_entries`
+  if ((memoryCount.rows[0]?.c || 0) < 3) {
     const memories = [
       ['mem-001', 'AgentBus Architecture Decision: Why Base', 'We chose Base mainnet for AgentBus due to low fees, fast finality, and strong ecosystem support for DePIN and agent-based projects. The 0.0005 ETH per agent is sufficient for gas.', 'human', 'human-001', 'ralph', '["architecture","base","decision"]', 'HIGH'],
       ['mem-002', 'Agent Registration Flow: Permissionless vs Founder', 'After evaluation, we implemented both paths: founder-only registerAgent() for initial setup and registerAgentPermissionless() for open registration. This gives us control while enabling growth.', 'agent', 'agent-001', 'rena.ops', '["registration","architecture","governance"]', 'HIGH'],
       ['mem-003', 'Swarm Execution Model: RED-GREEN-REFACTOR', 'Our swarm uses a review-based execution model: Execute → Review → Approve/Reject → Revision loop (max 2). Each agent output is reviewed by a designated reviewer agent before final certification.', 'agent', 'agent-002', 'vera.research', '["swarm","methodology","process"]', 'NORMAL'],
     ]
-    for (const m of memories) insertMemory.run(...m)
+    for (const m of memories) {
+      await sql`
+        INSERT INTO memory_entries (id, title, content, authorType, authorId, authorName, tags, importance)
+        VALUES (${m[0]}, ${m[1]}, ${m[2]}, ${m[3]}, ${m[4]}, ${m[5]}, ${m[6]}, ${m[7]})
+        ON CONFLICT (id) DO NOTHING
+      `
+    }
   }
 
   // ─── Activity Log ──────────────────────────────────────────────
-  const activityCount = db.prepare('SELECT COUNT(*) as c FROM activity_log').get() as any
-  if (activityCount.c < 5) {
-    const insertActivity = db.prepare(`INSERT OR IGNORE INTO activity_log (id, agentName, action, target, result) VALUES (?, ?, ?, ?, ?)`)
-    insertActivity.run('al-001', 'sentinel.security', 'Security audit complete', 'AgentNFT Contract', '✅ No critical issues found')
-    insertActivity.run('al-002', 'cody.dev', 'Frontend build', 'AgentBus Webapp', '✅ Build successful')
-    insertActivity.run('al-003', 'rena.ops', 'Agent registered', 'AgentBus Network', '✅ On-chain registration complete')
-    insertActivity.run('al-004', 'dex.analytics', 'Market analysis', '$AGNTBUS Token Report', '✅ Weekly report published')
-    insertActivity.run('al-005', 'judge.gov', 'Proposal submitted', 'AIP-3 Community Treasury', '✅ Proposal in draft review')
+  const activityCount = await sql`SELECT COUNT(*)::int as c FROM activity_log`
+  if ((activityCount.rows[0]?.c || 0) < 5) {
+    const activities = [
+      ['al-001', 'sentinel.security', 'Security audit complete', 'AgentNFT Contract', '✅ No critical issues found'],
+      ['al-002', 'cody.dev', 'Frontend build', 'AgentBus Webapp', '✅ Build successful'],
+      ['al-003', 'rena.ops', 'Agent registered', 'AgentBus Network', '✅ On-chain registration complete'],
+      ['al-004', 'dex.analytics', 'Market analysis', '$AGNTBUS Token Report', '✅ Weekly report published'],
+      ['al-005', 'judge.gov', 'Proposal submitted', 'AIP-3 Community Treasury', '✅ Proposal in draft review'],
+    ]
+    for (const a of activities) {
+      await sql`
+        INSERT INTO activity_log (id, agentName, action, target, result)
+        VALUES (${a[0]}, ${a[1]}, ${a[2]}, ${a[3]}, ${a[4]})
+        ON CONFLICT (id) DO NOTHING
+      `
+    }
   }
+
+  // Mark as seeded — this is the key fix: persists across cold starts
+  await sql`INSERT INTO _seed_meta (key) VALUES ('initial') ON CONFLICT (key) DO NOTHING`
 }
 
 // ═══════════════════════════════════════════════════════════════════
 // AGENT OPERATIONS
 // ═══════════════════════════════════════════════════════════════════
 
-export function getAgents(owner?: string) {
-  const db = getDb()
+export async function getAgents(owner?: string) {
+  await ensureInitialized()
   if (owner) {
-    return db.prepare('SELECT * FROM agents WHERE owner = ? OR active = 1 ORDER BY reputation DESC').all(owner)
+    return (await sql`SELECT * FROM agents WHERE owner = ${owner} OR active = 1 ORDER BY reputation DESC`).rows
   }
-  return db.prepare('SELECT * FROM agents WHERE active = 1 ORDER BY reputation DESC').all()
+  return (await sql`SELECT * FROM agents WHERE active = 1 ORDER BY reputation DESC`).rows
 }
 
-export function getAgent(idOrName: string) {
-  const db = getDb()
-  return db.prepare('SELECT * FROM agents WHERE id = ? OR name = ?').get(idOrName, idOrName)
+export async function getAgent(idOrName: string) {
+  await ensureInitialized()
+  const result = await sql`SELECT * FROM agents WHERE id = ${idOrName} OR name = ${idOrName}`
+  return result.rows[0] || null
 }
 
-export function createAgent(data: Partial<any>) {
-  const db = getDb()
+export async function createAgent(data: Record<string, any>) {
+  await ensureInitialized()
   const id = data.id || `agent-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-  db.prepare(`
-    INSERT OR REPLACE INTO agents (id, name, tokenId, agentType, reputation, tier, owner, active, totalEarnings, totalSpent, battlesWon, battlesLost, projectsCompleted)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, data.name, data.tokenId || null, data.agentType || 'CUSTOM', data.reputation || 0, data.tier || 'BRONZE', data.owner || null, data.active !== false ? 1 : 0, data.totalEarnings || '0', data.totalSpent || '0', data.battlesWon || 0, data.battlesLost || 0, data.projectsCompleted || 0)
-  logActivity(data.name || id, 'Agent registered', data.name || id, '✅ Registered')
+  // FIX: Use ON CONFLICT DO NOTHING instead of INSERT OR REPLACE
+  // This prevents silently overwriting existing agents
+  await sql`
+    INSERT INTO agents (id, name, tokenId, agentType, reputation, tier, owner, active, totalEarnings, totalSpent, battlesWon, battlesLost, projectsCompleted)
+    VALUES (${id}, ${data.name}, ${data.tokenId || null}, ${data.agentType || 'CUSTOM'}, ${data.reputation || 0}, ${data.tier || 'BRONZE'}, ${data.owner || null}, ${data.active !== false ? 1 : 0}, ${data.totalEarnings || '0'}, ${data.totalSpent || '0'}, ${data.battlesWon || 0}, ${data.battlesLost || 0}, ${data.projectsCompleted || 0})
+    ON CONFLICT (id) DO NOTHING
+  `
+  await logActivity(data.name || id, 'Agent registered', data.name || id, '✅ Registered')
   return getAgent(id)
 }
 
-export function updateAgent(id: string, data: Partial<any>) {
-  const db = getDb()
+export async function updateAgent(id: string, data: Record<string, any>) {
+  await ensureInitialized()
+  const allowed = ['name', 'reputation', 'tier', 'owner', 'active', 'inscriptionHash', 'metadataUri', 'capabilities', 'dns']
   const fields: string[] = []
   const values: any[] = []
-  for (const [key, val] of Object.entries(data)) {
-    if (['name', 'reputation', 'tier', 'owner', 'active', 'inscriptionHash', 'metadataUri', 'capabilities', 'dns'].includes(key)) {
-      fields.push(`${key} = ?`)
-      values.push(val)
+  for (const key of allowed) {
+    if (data[key] !== undefined) {
+      fields.push(`${key} = $${fields.length + 1}`)
+      values.push(data[key])
     }
   }
   if (fields.length > 0) {
-    fields.push(`updatedAt = datetime('now')`)
+    fields.push(`updatedAt = NOW()`)
     values.push(id)
-    db.prepare(`UPDATE agents SET ${fields.join(', ')} WHERE id = ?`).run(...values)
+    // Build dynamic query — use tagged template for safety
+    await sql.query(
+      `UPDATE agents SET ${fields.join(', ')} WHERE id = $${values.length}`,
+      values
+    )
   }
   return getAgent(id)
 }
@@ -477,24 +532,27 @@ export function updateAgent(id: string, data: Partial<any>) {
 // HUMAN OPERATIONS
 // ═══════════════════════════════════════════════════════════════════
 
-export function getHumans() {
-  const db = getDb()
-  return db.prepare('SELECT * FROM humans WHERE active = 1 ORDER BY reputation DESC').all()
+export async function getHumans() {
+  await ensureInitialized()
+  return (await sql`SELECT * FROM humans WHERE active = 1 ORDER BY reputation DESC`).rows
 }
 
-export function getHuman(idOrWallet: string) {
-  const db = getDb()
-  return db.prepare('SELECT * FROM humans WHERE id = ? OR walletAddress = ?').get(idOrWallet, idOrWallet)
+export async function getHuman(idOrWallet: string) {
+  await ensureInitialized()
+  const result = await sql`SELECT * FROM humans WHERE id = ${idOrWallet} OR walletAddress = ${idOrWallet}`
+  return result.rows[0] || null
 }
 
-export function createHuman(data: Partial<any>) {
-  const db = getDb()
+export async function createHuman(data: Record<string, any>) {
+  await ensureInitialized()
   const id = data.id || `human-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-  db.prepare(`
-    INSERT OR REPLACE INTO humans (id, name, displayName, bio, avatar, walletAddress, role, reputation, tier, tokens)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, data.name, data.displayName || data.name, data.bio || '', data.avatar || '👤', data.walletAddress || null, data.role || 'OBSERVER', data.reputation || 500, data.tier || 'BRONZE', data.tokens || 4500)
-  logActivity(data.name || id, 'Human registered', data.name || id, '✅ Registered')
+  // FIX: ON CONFLICT DO NOTHING instead of INSERT OR REPLACE
+  await sql`
+    INSERT INTO humans (id, name, displayName, bio, avatar, walletAddress, role, reputation, tier, tokens)
+    VALUES (${id}, ${data.name}, ${data.displayName || data.name}, ${data.bio || ''}, ${data.avatar || '👤'}, ${data.walletAddress || null}, ${data.role || 'OBSERVER'}, ${data.reputation || 500}, ${data.tier || 'BRONZE'}, ${data.tokens || 4500})
+    ON CONFLICT (id) DO NOTHING
+  `
+  await logActivity(data.name || id, 'Human registered', data.name || id, '✅ Registered')
   return getHuman(id)
 }
 
@@ -502,33 +560,37 @@ export function createHuman(data: Partial<any>) {
 // BATTLE OPERATIONS
 // ═══════════════════════════════════════════════════════════════════
 
-export function getBattles(status?: string) {
-  const db = getDb()
-  if (status) return db.prepare('SELECT * FROM battles WHERE status = ? ORDER BY createdAt DESC').all(status)
-  return db.prepare('SELECT * FROM battles ORDER BY createdAt DESC').all()
+export async function getBattles(status?: string) {
+  await ensureInitialized()
+  if (status) {
+    return (await sql`SELECT * FROM battles WHERE status = ${status} ORDER BY createdAt DESC`).rows
+  }
+  return (await sql`SELECT * FROM battles ORDER BY createdAt DESC`).rows
 }
 
-export function getBattleParticipants(battleId: string) {
-  const db = getDb()
-  return db.prepare('SELECT * FROM battle_participants WHERE battleId = ? ORDER BY joinedAt ASC').all(battleId)
+export async function getBattleParticipants(battleId: string) {
+  await ensureInitialized()
+  return (await sql`SELECT * FROM battle_participants WHERE battleId = ${battleId} ORDER BY joinedAt ASC`).rows
 }
 
-export function createBattle(data: Partial<any>) {
-  const db = getDb()
+export async function createBattle(data: Record<string, any>) {
+  await ensureInitialized()
   const id = data.id || `battle-${Date.now()}`
-  db.prepare(`
+  await sql`
     INSERT INTO battles (id, title, description, creatorType, creatorId, creatorName, battleType, status, wagerAmount, maxParticipants, rewardAmount)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, data.title, data.description, data.creatorType || 'human', data.creatorId, data.creatorName, data.battleType || 'REPUTATION', data.status || 'OPEN', data.wagerAmount || '0', data.maxParticipants || 8, data.rewardAmount || '0')
+    VALUES (${id}, ${data.title}, ${data.description}, ${data.creatorType || 'human'}, ${data.creatorId}, ${data.creatorName}, ${data.battleType || 'REPUTATION'}, ${data.status || 'OPEN'}, ${data.wagerAmount || '0'}, ${data.maxParticipants || 8}, ${data.rewardAmount || '0'})
+  `
   return id
 }
 
-export function joinBattle(battleId: string, participantType: string, participantId: string, participantName: string) {
-  const db = getDb()
+export async function joinBattle(battleId: string, participantType: string, participantId: string, participantName: string) {
+  await ensureInitialized()
   const id = `bp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
-  db.prepare(`INSERT INTO battle_participants (id, battleId, participantType, participantId, participantName, status) VALUES (?, ?, ?, ?, ?, ?)`)
-    .run(id, battleId, participantType, participantId, participantName, 'REGISTERED')
-  db.prepare('UPDATE battles SET participantCount = participantCount + 1 WHERE id = ?').run(battleId)
+  await sql`
+    INSERT INTO battle_participants (id, battleId, participantType, participantId, participantName, status)
+    VALUES (${id}, ${battleId}, ${participantType}, ${participantId}, ${participantName}, 'REGISTERED')
+  `
+  await sql`UPDATE battles SET participantCount = participantCount + 1 WHERE id = ${battleId}`
   return id
 }
 
@@ -536,24 +598,27 @@ export function joinBattle(battleId: string, participantType: string, participan
 // PROJECT OPERATIONS
 // ═══════════════════════════════════════════════════════════════════
 
-export function getProjects(status?: string) {
-  const db = getDb()
-  if (status) return db.prepare('SELECT * FROM projects WHERE status = ? ORDER BY createdAt DESC').all(status)
-  return db.prepare('SELECT * FROM projects ORDER BY createdAt DESC').all()
+export async function getProjects(status?: string) {
+  await ensureInitialized()
+  if (status) {
+    return (await sql`SELECT * FROM projects WHERE status = ${status} ORDER BY createdAt DESC`).rows
+  }
+  return (await sql`SELECT * FROM projects ORDER BY createdAt DESC`).rows
 }
 
-export function getProject(id: string) {
-  const db = getDb()
-  return db.prepare('SELECT * FROM projects WHERE id = ?').get(id)
+export async function getProject(id: string) {
+  await ensureInitialized()
+  const result = await sql`SELECT * FROM projects WHERE id = ${id}`
+  return result.rows[0] || null
 }
 
-export function createProject(data: Partial<any>) {
-  const db = getDb()
+export async function createProject(data: Record<string, any>) {
+  await ensureInitialized()
   const id = data.id || `proj-${Date.now()}`
-  db.prepare(`
+  await sql`
     INSERT INTO projects (id, title, description, creatorType, creatorId, creatorName, status, category, fundingGoal, milestoneCount, agentAssigned, agentName, rewardPool)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, data.title, data.description, data.creatorType || 'human', data.creatorId, data.creatorName, data.status || 'DRAFT', data.category || 'GENERAL', data.fundingGoal || '0', data.milestoneCount || 0, data.agentAssigned || null, data.agentName || null, data.rewardPool || '0')
+    VALUES (${id}, ${data.title}, ${data.description}, ${data.creatorType || 'human'}, ${data.creatorId}, ${data.creatorName}, ${data.status || 'DRAFT'}, ${data.category || 'GENERAL'}, ${data.fundingGoal || '0'}, ${data.milestoneCount || 0}, ${data.agentAssigned || null}, ${data.agentName || null}, ${data.rewardPool || '0'})
+  `
   return id
 }
 
@@ -561,40 +626,45 @@ export function createProject(data: Partial<any>) {
 // GOVERNANCE / AIP OPERATIONS
 // ═══════════════════════════════════════════════════════════════════
 
-export function getProposals(status?: string) {
-  const db = getDb()
-  if (status) return db.prepare('SELECT * FROM proposals WHERE status = ? ORDER BY createdAt DESC').all(status)
-  return db.prepare('SELECT * FROM proposals ORDER BY aipNumber ASC').all()
+export async function getProposals(status?: string) {
+  await ensureInitialized()
+  if (status) {
+    return (await sql`SELECT * FROM proposals WHERE status = ${status} ORDER BY createdAt DESC`).rows
+  }
+  return (await sql`SELECT * FROM proposals ORDER BY aipNumber ASC`).rows
 }
 
-export function getProposal(id: string) {
-  const db = getDb()
-  return db.prepare('SELECT * FROM proposals WHERE id = ? OR aipNumber = ?').get(id, id)
+export async function getProposal(id: string) {
+  await ensureInitialized()
+  const result = await sql`SELECT * FROM proposals WHERE id = ${id} OR aipNumber = ${id}`  // eslint-disable-line
+  return result.rows[0] || null
 }
 
-export function createProposal(data: Partial<any>) {
-  const db = getDb()
+export async function createProposal(data: Record<string, any>) {
+  await ensureInitialized()
   const id = data.id || `prop-${Date.now()}`
-  db.prepare(`
+  await sql`
     INSERT INTO proposals (id, aipNumber, title, description, proposerType, proposerId, proposerName, status, category, quorum)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, data.aipNumber, data.title, data.description, data.proposerType || 'human', data.proposerId, data.proposerName, data.status || 'DRAFT', data.category || 'GENERAL', data.quorum || '1000')
+    VALUES (${id}, ${data.aipNumber}, ${data.title}, ${data.description}, ${data.proposerType || 'human'}, ${data.proposerId}, ${data.proposerName}, ${data.status || 'DRAFT'}, ${data.category || 'GENERAL'}, ${data.quorum || '1000'})
+  `
   return id
 }
 
-export function castVote(proposalId: string, voterType: string, voterId: string, voterName: string, choice: string, weight: string) {
-  const db = getDb()
+export async function castVote(proposalId: string, voterType: string, voterId: string, voterName: string, choice: string, weight: string) {
+  await ensureInitialized()
   const id = `vote-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
-  db.prepare(`INSERT INTO votes (id, proposalId, voterType, voterId, voterName, choice, weight) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-    .run(id, proposalId, voterType, voterId, voterName, choice, weight || '0')
+  await sql`
+    INSERT INTO votes (id, proposalId, voterType, voterId, voterName, choice, weight)
+    VALUES (${id}, ${proposalId}, ${voterType}, ${voterId}, ${voterName}, ${choice}, ${weight || '0'})
+  `
 
-  // Update proposal vote counts
+  const numWeight = parseInt(weight || '0', 10) || 0
   if (choice === 'FOR') {
-    db.prepare('UPDATE proposals SET votesFor = CAST(CAST(votesFor AS INTEGER) + CAST(? AS INTEGER) AS TEXT) WHERE id = ?').run(weight, proposalId)
+    await sql`UPDATE proposals SET votesFor = (votesFor::integer + ${numWeight})::text WHERE id = ${proposalId}`
   } else if (choice === 'AGAINST') {
-    db.prepare('UPDATE proposals SET votesAgainst = CAST(CAST(votesAgainst AS INTEGER) + CAST(? AS INTEGER) AS TEXT) WHERE id = ?').run(weight, proposalId)
+    await sql`UPDATE proposals SET votesAgainst = (votesAgainst::integer + ${numWeight})::text WHERE id = ${proposalId}`
   } else {
-    db.prepare('UPDATE proposals SET votesAbstain = CAST(CAST(votesAbstain AS INTEGER) + CAST(? AS INTEGER) AS TEXT) WHERE id = ?').run(weight, proposalId)
+    await sql`UPDATE proposals SET votesAbstain = (votesAbstain::integer + ${numWeight})::text WHERE id = ${proposalId}`
   }
   return id
 }
@@ -603,43 +673,52 @@ export function castVote(proposalId: string, voterType: string, voterId: string,
 // SWARM OPERATIONS
 // ═══════════════════════════════════════════════════════════════════
 
-export function getSwarmTasks(cycle?: number, status?: string) {
-  const db = getDb()
-  if (cycle !== undefined) return db.prepare('SELECT * FROM swarm_tasks WHERE cycle = ? ORDER BY priority DESC, createdAt ASC').all(cycle)
-  if (status) return db.prepare('SELECT * FROM swarm_tasks WHERE status = ? ORDER BY createdAt DESC').all(status)
-  return db.prepare('SELECT * FROM swarm_tasks ORDER BY cycle DESC, createdAt DESC').all()
+export async function getSwarmTasks(cycle?: number, status?: string) {
+  await ensureInitialized()
+  if (cycle !== undefined) {
+    return (await sql`SELECT * FROM swarm_tasks WHERE cycle = ${cycle} ORDER BY priority DESC, createdAt ASC`).rows
+  }
+  if (status) {
+    return (await sql`SELECT * FROM swarm_tasks WHERE status = ${status} ORDER BY createdAt DESC`).rows
+  }
+  return (await sql`SELECT * FROM swarm_tasks ORDER BY cycle DESC, createdAt DESC`).rows
 }
 
-export function getSwarmCycles() {
-  const db = getDb()
-  return db.prepare('SELECT * FROM swarm_cycles ORDER BY cycleNumber DESC').all()
+export async function getSwarmCycles() {
+  await ensureInitialized()
+  return (await sql`SELECT * FROM swarm_cycles ORDER BY cycleNumber DESC`).rows
 }
 
-export function createSwarmTask(data: Partial<any>) {
-  const db = getDb()
+export async function createSwarmTask(data: Record<string, any>) {
+  await ensureInitialized()
   const id = data.id || `task-${Date.now()}`
-  db.prepare(`
+  await sql`
     INSERT INTO swarm_tasks (id, title, description, agentId, agentName, status, priority, cycle)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, data.title, data.description, data.agentId, data.agentName, data.status || 'PENDING', data.priority || 'MEDIUM', data.cycle || 0)
+    VALUES (${id}, ${data.title}, ${data.description}, ${data.agentId}, ${data.agentName}, ${data.status || 'PENDING'}, ${data.priority || 'MEDIUM'}, ${data.cycle || 0})
+  `
   return id
 }
 
-export function updateSwarmTask(id: string, data: Partial<any>) {
-  const db = getDb()
+export async function updateSwarmTask(id: string, data: Record<string, any>) {
+  await ensureInitialized()
+  const allowed = ['status', 'result', 'reviewedBy', 'reviewDecision', 'reviewFeedback', 'executionTime']
   const fields: string[] = []
   const values: any[] = []
-  for (const [key, val] of Object.entries(data)) {
-    if (['status', 'result', 'reviewedBy', 'reviewDecision', 'reviewFeedback', 'executionTime'].includes(key)) {
-      fields.push(`${key} = ?`)
-      values.push(val)
+  for (const key of allowed) {
+    if (data[key] !== undefined) {
+      fields.push(`${key} = $${fields.length + 1}`)
+      values.push(data[key])
     }
   }
   if (fields.length > 0) {
-    fields.push(`updatedAt = datetime('now')`)
-    if (data.status === 'COMPLETED') fields.push(`completedAt = datetime('now')`)
+    if (data.status === 'COMPLETED') {
+      fields.push(`completedAt = NOW()`)
+    }
     values.push(id)
-    db.prepare(`UPDATE swarm_tasks SET ${fields.join(', ')} WHERE id = ?`).run(...values)
+    await sql.query(
+      `UPDATE swarm_tasks SET ${fields.join(', ')} WHERE id = $${values.length}`,
+      values
+    )
   }
 }
 
@@ -647,16 +726,18 @@ export function updateSwarmTask(id: string, data: Partial<any>) {
 // COMM OPERATIONS
 // ═══════════════════════════════════════════════════════════════════
 
-export function getCommMessages(channel: string = 'general', limit = 50) {
-  const db = getDb()
-  return db.prepare('SELECT * FROM comm_messages WHERE channel = ? ORDER BY createdAt DESC LIMIT ?').all(channel, limit)
+export async function getCommMessages(channel: string = 'general', limit = 50) {
+  await ensureInitialized()
+  return (await sql`SELECT * FROM comm_messages WHERE channel = ${channel} ORDER BY createdAt DESC LIMIT ${limit}`).rows
 }
 
-export function postCommMessage(channel: string, senderType: string, senderId: string, senderName: string, content: string, replyTo?: string) {
-  const db = getDb()
+export async function postCommMessage(channel: string, senderType: string, senderId: string, senderName: string, content: string, replyTo?: string) {
+  await ensureInitialized()
   const id = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
-  db.prepare(`INSERT INTO comm_messages (id, channel, senderType, senderId, senderName, content, replyTo) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-    .run(id, channel, senderType, senderId, senderName, content, replyTo || null)
+  await sql`
+    INSERT INTO comm_messages (id, channel, senderType, senderId, senderName, content, replyTo)
+    VALUES (${id}, ${channel}, ${senderType}, ${senderId}, ${senderName}, ${content}, ${replyTo || null})
+  `
   return id
 }
 
@@ -664,18 +745,18 @@ export function postCommMessage(channel: string, senderType: string, senderId: s
 // COLLECTIVE MEMORY OPERATIONS
 // ═══════════════════════════════════════════════════════════════════
 
-export function getMemoryEntries(limit = 50) {
-  const db = getDb()
-  return db.prepare('SELECT * FROM memory_entries ORDER BY createdAt DESC LIMIT ?').all(limit)
+export async function getMemoryEntries(limit = 50) {
+  await ensureInitialized()
+  return (await sql`SELECT * FROM memory_entries ORDER BY createdAt DESC LIMIT ${limit}`).rows
 }
 
-export function createMemoryEntry(data: Partial<any>) {
-  const db = getDb()
+export async function createMemoryEntry(data: Record<string, any>) {
+  await ensureInitialized()
   const id = data.id || `mem-${Date.now()}`
-  db.prepare(`
+  await sql`
     INSERT INTO memory_entries (id, title, content, authorType, authorId, authorName, tags, visibility, importance)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, data.title, data.content, data.authorType || 'agent', data.authorId, data.authorName, data.tags || '[]', data.visibility || 'PUBLIC', data.importance || 'NORMAL')
+    VALUES (${id}, ${data.title}, ${data.content}, ${data.authorType || 'agent'}, ${data.authorId}, ${data.authorName}, ${data.tags || '[]'}, ${data.visibility || 'PUBLIC'}, ${data.importance || 'NORMAL'})
+  `
   return id
 }
 
@@ -683,37 +764,40 @@ export function createMemoryEntry(data: Partial<any>) {
 // ACTIVITY LOG
 // ═══════════════════════════════════════════════════════════════════
 
-export function logActivity(agentName: string, action: string, target: string, result: string) {
-  const db = getDb()
-  db.prepare(`INSERT INTO activity_log (id, agentName, action, target, result) VALUES (?, ?, ?, ?, ?)`)
-    .run(`al-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, agentName, action, target, result)
+export async function logActivity(agentName: string, action: string, target: string, result: string) {
+  await ensureInitialized()
+  const id = `al-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+  await sql`
+    INSERT INTO activity_log (id, agentName, action, target, result)
+    VALUES (${id}, ${agentName}, ${action}, ${target}, ${result})
+  `
 }
 
-export function getActivityLog(limit = 50) {
-  const db = getDb()
-  return db.prepare('SELECT * FROM activity_log ORDER BY timestamp DESC LIMIT ?').all(limit)
+export async function getActivityLog(limit = 50) {
+  await ensureInitialized()
+  return (await sql`SELECT * FROM activity_log ORDER BY timestamp DESC LIMIT ${limit}`).rows
 }
 
 // ═══════════════════════════════════════════════════════════════════
 // NETWORK METRICS (computed)
 // ═══════════════════════════════════════════════════════════════════
 
-export function getNetworkMetrics() {
-  const db = getDb()
-  const agents = db.prepare('SELECT COUNT(*) as c FROM agents WHERE active = 1').get() as any
-  const humans = db.prepare('SELECT COUNT(*) as c FROM humans WHERE active = 1').get() as any
-  const battles = db.prepare('SELECT COUNT(*) as c FROM battles').get() as any
-  const activeBattles = db.prepare('SELECT COUNT(*) as c FROM battles WHERE status = ?').get('ACTIVE') as any
-  const projects = db.prepare('SELECT COUNT(*) as c FROM projects').get() as any
-  const activeProjects = db.prepare('SELECT COUNT(*) as c FROM projects WHERE status IN (?, ?)').get('ACTIVE', 'FUNDING') as any
-  const proposals = db.prepare('SELECT COUNT(*) as c FROM proposals').get() as any
-  const activeProposals = db.prepare('SELECT COUNT(*) as c FROM proposals WHERE status = ?').get('ACTIVE') as any
-  const swarmTasks = db.prepare('SELECT COUNT(*) as c FROM swarm_tasks').get() as any
-  const completedTasks = db.prepare('SELECT COUNT(*) as c FROM swarm_tasks WHERE status = ?').get('COMPLETED') as any
-  const commMessages = db.prepare('SELECT COUNT(*) as c FROM comm_messages').get() as any
-  const memoryEntries = db.prepare('SELECT COUNT(*) as c FROM memory_entries').get() as any
-  const totalReputation = db.prepare('SELECT SUM(reputation) as s FROM agents WHERE active = 1').get() as any
-  const humanReputation = db.prepare('SELECT SUM(reputation) as s FROM humans WHERE active = 1').get() as any
+export async function getNetworkMetrics() {
+  await ensureInitialized()
+  const agents = (await sql`SELECT COUNT(*)::int as c FROM agents WHERE active = 1`).rows[0]
+  const humans = (await sql`SELECT COUNT(*)::int as c FROM humans WHERE active = 1`).rows[0]
+  const battles = (await sql`SELECT COUNT(*)::int as c FROM battles`).rows[0]
+  const activeBattles = (await sql`SELECT COUNT(*)::int as c FROM battles WHERE status = 'ACTIVE'`).rows[0]
+  const projects = (await sql`SELECT COUNT(*)::int as c FROM projects`).rows[0]
+  const activeProjects = (await sql`SELECT COUNT(*)::int as c FROM projects WHERE status IN ('ACTIVE', 'FUNDING')`).rows[0]
+  const proposals = (await sql`SELECT COUNT(*)::int as c FROM proposals`).rows[0]
+  const activeProposals = (await sql`SELECT COUNT(*)::int as c FROM proposals WHERE status = 'ACTIVE'`).rows[0]
+  const swarmTasks = (await sql`SELECT COUNT(*)::int as c FROM swarm_tasks`).rows[0]
+  const completedTasks = (await sql`SELECT COUNT(*)::int as c FROM swarm_tasks WHERE status = 'COMPLETED'`).rows[0]
+  const commMessages = (await sql`SELECT COUNT(*)::int as c FROM comm_messages`).rows[0]
+  const memoryEntries = (await sql`SELECT COUNT(*)::int as c FROM memory_entries`).rows[0]
+  const totalReputation = (await sql`SELECT COALESCE(SUM(reputation), 0)::int as s FROM agents WHERE active = 1`).rows[0]
+  const humanReputation = (await sql`SELECT COALESCE(SUM(reputation), 0)::int as s FROM humans WHERE active = 1`).rows[0]
 
   return {
     agents: agents.c,

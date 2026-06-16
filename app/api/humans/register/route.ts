@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     // Check if wallet already has a human (claim flow)
     if (walletAddress) {
-      const existing = getHuman(walletAddress) as any
+      const existing = await getHuman(walletAddress) as any
       if (existing && existing.walletAddress?.toLowerCase() === walletAddress.toLowerCase()) {
         return NextResponse.json({
           success: true,
@@ -39,13 +39,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for duplicate name
-    const nameExists = getHuman(name) as any
+    const nameExists = await getHuman(name) as any
     if (nameExists) {
       return NextResponse.json({ success: false, error: 'Username already taken' }, { status: 409 })
     }
 
     // Create in database
-    const human = createHuman({
+    const human = await createHuman({
       name: name.toLowerCase().replace(/\s+/g, '.'),
       displayName,
       bio: bio || '',
@@ -79,13 +79,13 @@ export async function GET(request: NextRequest) {
   const wallet = searchParams.get('wallet')
 
   if (wallet) {
-    const human = getHuman(wallet) as any
+    const human = await getHuman(wallet) as any
     if (human) {
       return NextResponse.json({ success: true, data: human })
     }
     return NextResponse.json({ success: false, error: 'No human found for this wallet' }, { status: 404 })
   }
 
-  const humans = getHumans() as any[]
+  const humans = await getHumans() as any[]
   return NextResponse.json({ success: true, data: humans })
 }

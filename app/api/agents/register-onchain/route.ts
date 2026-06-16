@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if already registered in DB
-    const existing = getAgent(name) as any
+    const existing = await getAgent(name) as any
     if (existing) {
       return NextResponse.json({
         success: true,
@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create in database
-    const agent = createAgent({
+    const agent = await createAgent({
       name,
       agentType: agentType !== undefined ? String(agentType) : 'CUSTOM',
       owner: walletAddress,

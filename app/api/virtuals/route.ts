@@ -19,7 +19,7 @@ export async function GET() {
 
     if (!res.ok) {
       // Fallback to DB metrics
-      const metrics = getNetworkMetrics()
+      const metrics = await getNetworkMetrics()
       return NextResponse.json({
         success: true,
         data: {

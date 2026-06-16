@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const pageSize = parseInt(searchParams.get('pageSize') || '20')
     const ownerFilter = searchParams.get('owner') || undefined
 
-    const allAgents = getAgents(ownerFilter) as any[]
+    const allAgents = await getAgents(ownerFilter) as any[]
     const start = (page - 1) * pageSize
     const items = allAgents.slice(start, start + pageSize)
 
@@ -38,12 +38,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'name required' }, { status: 400 })
     }
 
-    const existing = getAgent(name)
+    const existing = await getAgent(name)
     if (existing) {
       return NextResponse.json({ success: false, error: 'Agent name taken', data: { id: (existing as any).id } }, { status: 409 })
     }
 
-    const agent = createAgent({
+    const agent = await createAgent({
       name,
       agentType: agentType || 'CUSTOM',
       owner: owner || null,

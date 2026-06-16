@@ -13,14 +13,14 @@ export async function POST(request: NextRequest) {
 
     // Check for existing agent with this name
     if (name) {
-      const agents: any[] = getAgents()
+      const agents: any[] = await getAgents()
       const existing = agents.find((a: any) => a.name === name)
       if (existing) {
         return NextResponse.json({ success: false, error: 'Name taken', data: { agentId: existing.id } }, { status: 409 })
       }
     }
 
-    const agent: any = createAgent({
+    const agent: any = await createAgent({
       name: name || null,
       agentType: metadata?.framework || 'CUSTOM',
       owner: null,
@@ -33,6 +33,6 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  const agents = getAgents()
+  const agents = await getAgents()
   return NextResponse.json({ success: true, data: { agents: agents.length, endpoint: '/api/register', method: 'POST' } })
 }

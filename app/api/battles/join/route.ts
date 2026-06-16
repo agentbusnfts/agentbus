@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify battle exists
-    const battles = getBattles() as any[]
+    const battles = await getBattles() as any[]
     const battle = battles.find((b: any) => b.id === battleId)
     if (!battle) {
       return NextResponse.json({ success: false, error: 'Battle not found' }, { status: 404 })
@@ -33,13 +33,13 @@ export async function POST(request: NextRequest) {
     // Verify participant exists
     let name = participantName
     if (participantType === 'agent') {
-      const agent = getAgent(participantId) as any
+      const agent = await getAgent(participantId) as any
       if (!agent) {
         return NextResponse.json({ success: false, error: 'Agent not found' }, { status: 404 })
       }
       name = name || agent.name
     } else {
-      const human = getHuman(participantId) as any
+      const human = await getHuman(participantId) as any
       if (!human) {
         return NextResponse.json({ success: false, error: 'Human not found' }, { status: 404 })
       }
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if already joined
-    const existingParticipants = getBattleParticipants(battleId) as any[]
+    const existingParticipants = await getBattleParticipants(battleId) as any[]
     const alreadyJoined = existingParticipants.find((p: any) => p.participantId === participantId)
     if (alreadyJoined) {
       return NextResponse.json({ success: false, error: 'Already joined this battle', data: { participantId: alreadyJoined.id } }, { status: 409 })
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Join the battle
-    const id = joinBattle(battleId, participantType, participantId, name)
+    const id = await joinBattle(battleId, participantType, participantId, name)
 
     return NextResponse.json({
       success: true,
@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'battleId query param required' }, { status: 400 })
     }
 
-    const participants = getBattleParticipants(battleId)
+    const participants = await getBattleParticipants(battleId)
     return NextResponse.json({ success: true, data: participants })
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 })

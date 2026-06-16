@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if already in DB
-    const existing = getAgent(name) as any
+    const existing = await getAgent(name) as any
     if (existing) {
       return NextResponse.json({
         success: true,
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create in database (even if not on-chain yet, for pre-registration)
-    const agent = createAgent({
+    const agent = await createAgent({
       name,
       agentType: agentType !== undefined ? String(agentType) : 'CUSTOM',
       owner: walletAddress,
@@ -135,7 +135,7 @@ export async function GET(req: NextRequest) {
 
     // Check database
     if (agentName) {
-      const agent = getAgent(agentName) as any
+      const agent = await getAgent(agentName) as any
       if (agent) {
         result.agentBusRegistered = true
         result.agent = { id: agent.id, name: agent.name, owner: agent.owner, tokenId: agent.tokenId }

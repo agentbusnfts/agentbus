@@ -60,3 +60,4 @@ scripts/wallets.json
 .cache
 tmp
 temp
+.env*

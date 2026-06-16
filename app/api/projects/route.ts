@@ -8,10 +8,10 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || undefined
     const id = searchParams.get('id')
     if (id) {
-      const project = getProject(id)
+      const project = await getProject(id)
       return NextResponse.json({ success: true, data: project })
     }
-    const projects = getProjects(status) as any[]
+    const projects = await getProjects(status) as any[]
     return NextResponse.json({ success: true, data: projects })
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 })
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const id = createProject(body)
+    const id = await createProject(body)
     return NextResponse.json({ success: true, data: { id } }, { status: 201 })
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 })

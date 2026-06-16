@@ -9,24 +9,28 @@ const KNOWN_AGENTS = [
   { tokenId: 11, name: 'agent-11', agentType: 'CUSTOM' as const },
 ]
 
-let synced = 0
-for (const agent of KNOWN_AGENTS) {
-  const existing = getAgent(String(agent.tokenId))
-  if (!existing) {
-    createAgent({
-      name: agent.name,
-      tokenId: agent.tokenId,
-      agentType: agent.agentType,
-      owner: null, // Unknown until we can read from contract
-      reputation: 0,
-      tier: 'BRONZE',
-      active: true,
-    })
-    synced++
-    console.log(`✅ Synced agent-${agent.tokenId}`)
-  } else {
-    console.log(`⏭️  Agent-${agent.tokenId} already in DB`)
+async function main() {
+  let synced = 0
+  for (const agent of KNOWN_AGENTS) {
+    const existing = await getAgent(String(agent.tokenId))
+    if (!existing) {
+      await createAgent({
+        name: agent.name,
+        tokenId: agent.tokenId,
+        agentType: agent.agentType,
+        owner: null, // Unknown until we can read from contract
+        reputation: 0,
+        tier: 'BRONZE',
+        active: true,
+      })
+      synced++
+      console.log(`✅ Synced agent-${agent.tokenId}`)
+    } else {
+      console.log(`⏭️  Agent-${agent.tokenId} already in DB`)
+    }
   }
+
+  console.log(`\n🎉 Synced ${synced} agents`)
 }
 
-console.log(`\n🎉 Synced ${synced} agents`)
+main().catch(console.error)

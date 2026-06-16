@@ -13,13 +13,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if agent already exists by name
-    const existing = getAgent(name) as any
+    const existing = await getAgent(name) as any
     if (existing) {
       return NextResponse.json({ success: true, data: existing, message: 'Agent already in DB' })
     }
 
     // Insert the new agent into the database
-    const agent = createAgent({
+    const agent = await createAgent({
       name,
       agentType: agentType !== undefined ? String(agentType) : 'CUSTOM',
       owner: owner || null,

@@ -12,7 +12,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const agent = getAgent(id)
+    const agent = await getAgent(id)
     if (!agent) {
       return NextResponse.json({ success: false, error: 'Agent not found' }, { status: 404 })
     }
