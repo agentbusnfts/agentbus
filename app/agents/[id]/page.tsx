@@ -59,7 +59,7 @@ export default function AgentDetailPage() {
   const [agent, setAgent] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [activeTab, setActiveTab] = useState<'overview' | 'onchain' | 'metadata' | 'card'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'onchain' | 'metadata'>('overview')
 
   useEffect(() => {
     if (!id) return
@@ -155,7 +155,6 @@ export default function AgentDetailPage() {
                 </a>
               </div>
             )}
-            {/* Data source badges */}
             <div className="flex items-center gap-2 mt-2">
               {agent.dataSource?.onChain && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
@@ -170,6 +169,36 @@ export default function AgentDetailPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* ═══ FLIP CARD — prominently displayed ═══ */}
+      <div className="flex flex-col items-center">
+        <AgentCard
+          name={agent.name}
+          tokenId={agent.tokenId}
+          tier={agent.tier || 'BRONZE'}
+          agentType={agent.agentType || 'CUSTOM'}
+          reputation={agent.reputation || 0}
+          battlesWon={agent.battlesWon || 0}
+          battlesLost={agent.battlesLost || 0}
+          projectsCompleted={agent.projectsCompleted || 0}
+          totalEarnings={agent.totalEarnings || '0'}
+          totalSpent={agent.totalSpent || '0'}
+          owner={agent.owner}
+          active={agent.active}
+          capabilities={agent.capabilities || '[]'}
+          cardMetadata={agent.cardMetadata || null}
+        />
+        {agent.tokenId && (
+          <a
+            href={`https://basescan.org/nft/0xb085E4795fC252FE167E900bcAf221DE87FD7218/${agent.tokenId}`}
+            target="_blank"
+            rel="noopener"
+            className="mt-2 text-xs text-primary-400 hover:underline flex items-center gap-1"
+          >
+            <ExternalLink className="w-3 h-3" /> View NFT on BaseScan
+          </a>
+        )}
       </div>
 
       {/* Stats Grid */}
@@ -202,7 +231,6 @@ export default function AgentDetailPage() {
           { id: 'overview', label: 'Overview', icon: BarChart3 },
           { id: 'onchain', label: 'On-Chain Data', icon: LinkIcon },
           { id: 'metadata', label: 'Metadata & Discovery', icon: Globe },
-          { id: 'card', label: '🎴 Card', icon: Sparkles },
         ].map(t => (
           <button
             key={t.id}
@@ -519,40 +547,6 @@ export default function AgentDetailPage() {
           </div>
         </div>
       )}
-      {activeTab === 'card' && (
-        <div className="flex flex-col items-center py-6">
-          <AgentCard
-            name={agent.name}
-            tokenId={agent.tokenId}
-            tier={agent.tier || 'BRONZE'}
-            agentType={agent.agentType || 'CUSTOM'}
-            reputation={agent.reputation || 0}
-            battlesWon={agent.battlesWon || 0}
-            battlesLost={agent.battlesLost || 0}
-            projectsCompleted={agent.projectsCompleted || 0}
-            totalEarnings={agent.totalEarnings || '0'}
-            totalSpent={agent.totalSpent || '0'}
-            owner={agent.owner}
-            active={agent.active}
-            capabilities={agent.capabilities || '[]'}
-            cardMetadata={agent.cardMetadata || null}
-          />
-          <p className="text-xs text-muted-foreground mt-4">
-            Click the card to flip and see the agent dossier
-          </p>
-          {agent.tokenId && (
-            <a
-              href={`https://basescan.org/nft/0xb085E4795fC252FE167E900bcAf221DE87FD7218/${agent.tokenId}`}
-              target="_blank"
-              rel="noopener"
-              className="mt-2 text-xs text-primary-400 hover:underline flex items-center gap-1"
-            >
-              <ExternalLink className="w-3 h-3" /> View NFT on BaseScan
-            </a>
-          )}
-        </div>
-      )}
-
     </div>
   )
 }
