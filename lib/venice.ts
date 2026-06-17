@@ -12,24 +12,22 @@ export interface VeniceConfig {
 
 export interface VeniceImageRequest {
   prompt: string
-  model?: string           // default: "flux-dev" or similar
-  width?: number           // default: 1024
-  height?: number          // default: 1024
-  steps?: number           // default: 30
-  guidance_scale?: number  // default: 7.5
+  model?: string           // default: "flux-2-pro"
+  aspect_ratio?: string    // "1:1", "16:9", "9:16", "3:2", "2:3", "3:4", "4:5"
+  steps?: number           // default: 20 (max 50 for flux-2-pro)
   seed?: number
   negative_prompt?: string
   style_preset?: string
+  hide_watermark?: boolean
 }
 
 export interface VeniceImageResponse {
   images: Array<{
     url: string
-    content_type: string
+    content_type?: string
   }>
-  timings: {
-    inference: number
-  }
+  timings?: Record<string, number>
+  request?: Record<string, any>
 }
 
 /**
@@ -42,15 +40,14 @@ export async function generateImage(
 ): Promise<VeniceImageResponse> {
   const body: Record<string, any> = {
     prompt: request.prompt,
-    model: request.model || 'flux-dev',
-    width: request.width || 1024,
-    height: request.height || 1024,
-    steps: request.steps || 30,
-    guidance_scale: request.guidance_scale || 7.5,
+    model: request.model || 'flux-2-pro',
+    aspect_ratio: request.aspect_ratio || '1:1',
+    steps: request.steps || 20,
   }
   if (request.seed !== undefined) body.seed = request.seed
   if (request.negative_prompt) body.negative_prompt = request.negative_prompt
   if (request.style_preset) body.style_preset = request.style_preset
+  if (request.hide_watermark !== undefined) body.hide_watermark = request.hide_watermark
 
   const res = await fetch(`${VENICE_API_BASE}/image/generate`, {
     method: 'POST',
@@ -103,25 +100,17 @@ export interface VeniceModel {
   type: 'text' | 'image'
   name: string
   description: string
-  pricing: {
-    input: { usd: number; diem: number }
-    output: { usd: number; diem: number }
-    cache_input?: { usd: number; diem: number }
-  }
+  pricing: Record<string, any>
   context_length: number
-  capabilities: {
-    supportsVision: boolean
-    supportsFunctionCalling: boolean
-    supportsReasoning: boolean
-    optimizedForCode: boolean
-  }
+  capabilities: Record<string, any>
 }
 
 /**
  * List available Venice models
+ * @param type Filter by model type: "text" | "image" (default: "text")
  */
-export async function listModels(config: VeniceConfig): Promise<VeniceModel[]> {
-  const res = await fetch(`${VENICE_API_BASE}/models`, {
+export async function listModels(config: VeniceConfig, type: 'text' | 'image' = 'text'): Promise<VeniceModel[]> {
+  const res = await fetch(`${VENICE_API_BASE}/models?type=${type}`, {
     headers: { 'Authorization': `Bearer ${config.apiKey}` },
   })
   if (!res.ok) throw new Error(`Failed to list models: ${res.status}`)
@@ -133,12 +122,7 @@ export async function listModels(config: VeniceConfig): Promise<VeniceModel[]> {
     description: m.model_spec?.description || '',
     pricing: m.model_spec?.pricing || {},
     context_length: m.context_length,
-    capabilities: {
-      supportsVision: m.model_spec?.capabilities?.supportsVision || false,
-      supportsFunctionCalling: m.model_spec?.capabilities?.supportsFunctionCalling || false,
-      supportsReasoning: m.model_spec?.capabilities?.supportsReasoning || false,
-      optimizedForCode: m.model_spec?.capabilities?.optimizedForCode || false,
-    },
+    capabilities: m.model_spec?.capabilities || {},
   }))
 }
 

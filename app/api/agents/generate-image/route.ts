@@ -71,11 +71,9 @@ export async function POST(request: NextRequest) {
       { apiKey: VENICE_API_KEY },
       {
         prompt,
-        model: 'flux-dev',
-        width: 768,
-        height: 768,
-        steps: 30,
-        guidance_scale: 7.5,
+        model: 'flux-2-pro',
+        aspect_ratio: '1:1',
+        steps: 20,
       }
     )
 
