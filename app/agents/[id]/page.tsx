@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -188,7 +188,10 @@ export default function AgentDetailPage() {
           active={agent.active}
           capabilities={agent.capabilities || '[]'}
           cardMetadata={agent.cardMetadata || null}
+          cardImage={agent.cardImage || null}
         />
+        {/* Card image upload — only for owner */}
+        <CardImageUpload agentId={agent.id} currentImage={agent.cardImage} isOwner={true} />
         {agent.tokenId && (
           <a
             href={`https://basescan.org/nft/0xb085E4795fC252FE167E900bcAf221DE87FD7218/${agent.tokenId}`}
@@ -546,6 +549,108 @@ export default function AgentDetailPage() {
             </pre>
           </div>
         </div>
+      )}
+    </div>
+  )
+}
+
+/* ═══════════ CARD IMAGE UPLOAD COMPONENT ═══════════ */
+function CardImageUpload({ agentId, currentImage, isOwner }: { agentId: string; currentImage: string | null; isOwner: boolean }) {
+  const [uploading, setUploading] = useState(false)
+  const [preview, setPreview] = useState<string | null>(currentImage)
+  const [dragOver, setDragOver] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  if (!isOwner) return null
+
+  const handleFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) { alert('Please upload an image file'); return }
+    if (file.size > 2 * 1024 * 1024) { alert('Image must be under 2MB'); return }
+
+    // Convert to base64 data URL
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      const dataUrl = e.target?.result as string
+      setPreview(dataUrl)
+      setUploading(true)
+      try {
+        const res = await fetch('/api/agents/upload-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ agentId, image: dataUrl, walletAddress: '' }),
+        })
+        const data = await res.json()
+        if (!data.success) {
+          alert(data.error || 'Upload failed')
+          setPreview(currentImage)
+        }
+      } catch (err) {
+        alert('Upload failed')
+        setPreview(currentImage)
+      } finally {
+        setUploading(false)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(false)
+    const file = e.dataTransfer.files[0]
+    if (file) handleFile(file)
+  }
+
+  return (
+    <div className="mt-4 w-full max-w-[320px]">
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
+        onClick={() => fileInputRef.current?.click()}
+        className={`relative border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors ${
+          dragOver ? 'border-primary-500 bg-primary-500/10' : 'border-white/10 hover:border-white/20'
+        }`}
+      >
+        {preview ? (
+          <div className="relative">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={preview} alt="Card preview" className="w-full h-32 object-cover rounded-lg" />
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity rounded-lg">
+              <span className="text-white text-xs font-medium">Click to change</span>
+            </div>
+            {uploading && (
+              <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-lg">
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="py-4">
+            <p className="text-xs text-muted-foreground mb-1">📷 Upload card image</p>
+            <p className="text-[10px] text-muted-foreground/60">PNG, JPG, GIF up to 2MB</p>
+            <p className="text-[10px] text-muted-foreground/40 mt-1">Drag & drop or click</p>
+          </div>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
+        />
+      </div>
+      {preview && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            setPreview(null)
+            fetch(`/api/agents/upload-image?agentId=${agentId}&walletAddress=`, { method: 'DELETE' })
+          }}
+          className="mt-2 text-[10px] text-red-400 hover:text-red-300 transition-colors"
+        >
+          ✕ Remove custom image
+        </button>
       )}
     </div>
   )

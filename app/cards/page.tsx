@@ -27,6 +27,7 @@ interface AgentCardData {
   active: boolean
   capabilities: string[]
   cardMetadata: any | null
+  cardImage: string | null
 }
 
 const TIER_ORDER: Record<string, number> = { DIAMOND: 5, PLATINUM: 4, GOLD: 3, SILVER: 2, BRONZE: 1 }
@@ -304,6 +305,7 @@ export default function CardCollectionPage() {
                   active={agent.active}
                   capabilities={JSON.stringify(agent.capabilities || [])}
                   cardMetadata={agent.cardMetadata}
+                  cardImage={agent.cardImage}
                 />
                 <Link
                   href={`/agents/${agent.id}`}
@@ -385,17 +387,30 @@ function GridCard({ agent }: { agent: AgentCardData }) {
             className="rounded-t-[14px] overflow-hidden"
             style={{ background: `linear-gradient(160deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)` }}
           >
-            {/* Mini art area — deterministic unique SVG */}
+            {/* Mini art area — custom image or procedural fallback */}
             <div className="relative h-40 overflow-hidden">
               <div
                 className="absolute inset-0"
                 style={{ background: `radial-gradient(circle at 50% 40%, ${bgGrad[0]} 0%, ${bgGrad[1]} 100%)` }}
               />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <svg width="160" height="160" viewBox="0 0 288 190" xmlns="http://www.w3.org/2000/svg">
-                  <g dangerouslySetInnerHTML={{ __html: (() => { const a = generateCompactArt(agent.tokenId, agent.name); return a.svg })() }} />
-                </svg>
-              </div>
+              {agent.cardImage ? (
+                /* Custom uploaded image */
+                <div className="absolute inset-0" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={agent.cardImage}
+                    alt={agent.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
+                  />
+                </div>
+              ) : (
+                /* Procedural SVG fallback */
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <svg width="160" height="160" viewBox="0 0 288 190" xmlns="http://www.w3.org/2000/svg">
+                    <g dangerouslySetInnerHTML={{ __html: (() => { const a = generateCompactArt(agent.tokenId, agent.name); return a.svg })() }} />
+                  </svg>
+                </div>
+              )}
               {/* Rarity */}
               <div className="absolute top-2 right-2 font-mono text-[9px] text-amber-400 tracking-wider">
                 {meta?.rarity || `★ ${agent.tier}`}

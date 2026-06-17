@@ -1,11 +1,12 @@
 // AgentBus — Pokémon-Style Flip Card Component
-// Front: unique procedural art, stats, moves, type badges
+// Front: agent image (custom uploaded or procedural fallback), stats, moves, type badges
 // Back: lore, abilities, traits, dossier
-// Each card generates deterministic unique art from tokenId + name
+// If cardImage is provided, uses that. Otherwise falls back to deterministic procedural art.
 
 'use client'
 
 import { useState, useMemo } from 'react'
+import Image from 'next/image'
 import type { CardMetadata, CardStat, CardMove, CardAbility, CardTrait, CardElement } from '@/types/card'
 import { ELEMENT_COLORS, STAT_COLORS, TIER_RARITY } from '@/types/card'
 import { generateCardArt } from '@/lib/card-art'
@@ -25,6 +26,7 @@ interface AgentCardProps {
   active?: boolean
   capabilities?: string
   cardMetadata: CardMetadata | null
+  cardImage?: string | null     // Custom uploaded image URL/data URI
   className?: string
 }
 
@@ -106,7 +108,6 @@ function generateCardMetadata(props: AgentCardProps): CardMetadata {
   }
 }
 
-// Hologram circle for back of card
 function HologramCircle({ holoColor, holoAccent }: { holoColor: string; holoAccent: string }) {
   return (
     <svg width="50" height="50" viewBox="0 0 50 50">
@@ -128,10 +129,13 @@ export default function AgentCard(props: AgentCardProps) {
   const meta = props.cardMetadata || generateCardMetadata(props)
   const hp = Math.round((props.reputation || 0) / 10) + 100
 
-  // Generate unique art — memoized so it only computes once
+  // Generate procedural art as fallback
   const art = useMemo(() => generateCardArt(props.tokenId, props.name), [props.tokenId, props.name])
 
-  // Derive elements from agent type
+  // Use custom image if available, otherwise procedural
+  const hasCustomImage = !!(props.cardImage || meta.cardImage)
+  const imageSrc = props.cardImage || meta.cardImage || null
+
   const typeMap: Record<string, CardElement[]> = {
     OPERATIONS: ['Cyber', 'Steel'], RESEARCH: ['Psi', 'Water'], TRADING: ['Fire', 'Steel'],
     CREATIVE: ['Bio', 'Psi'], SECURITY: ['Dark', 'Cyber'], GOVERNANCE: ['Water', 'Steel'],
@@ -142,7 +146,7 @@ export default function AgentCard(props: AgentCardProps) {
 
   const handleClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement
-    if (target.closest('a') || target.closest('button')) return
+    if (target.closest('a') || target.closest('button') || target.closest('input')) return
     setFlipped(f => !f)
   }
 
@@ -183,12 +187,41 @@ export default function AgentCard(props: AgentCardProps) {
               })}
             </div>
 
-            {/* Art area — unique procedural SVG */}
-            <div style={{ margin: '0 16px', borderRadius: 12, height: 190, position: 'relative', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.15)' }}>
-              <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(circle at 50% 40%, ${art.bg1} 0%, ${art.bg2} 100%)` }} />
-              <svg width="100%" height="100%" viewBox="0 0 288 190" xmlns="http://www.w3.org/2000/svg" style={{ position: 'absolute', inset: 0 }}>
-                <g dangerouslySetInnerHTML={{ __html: art.svg }} />
-              </svg>
+            {/* Art area */}
+            <div style={{
+              margin: '0 16px', borderRadius: 12, height: 190, position: 'relative', overflow: 'hidden',
+              border: '2px solid rgba(255,255,255,0.15)',
+            }}>
+              {/* Background gradient */}
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: hasCustomImage
+                  ? 'linear-gradient(160deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)'
+                  : `radial-gradient(circle at 50% 40%, ${art.bg1} 0%, ${art.bg2} 100%)`,
+              }} />
+
+              {hasCustomImage ? (
+                /* Custom uploaded image */
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={imageSrc!}
+                    alt={props.name}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      objectPosition: 'center',
+                    }}
+                  />
+                </div>
+              ) : (
+                /* Procedural SVG art fallback */
+                <svg width="100%" height="100%" viewBox="0 0 288 190" xmlns="http://www.w3.org/2000/svg" style={{ position: 'absolute', inset: 0 }}>
+                  <g dangerouslySetInnerHTML={{ __html: art.svg }} />
+                </svg>
+              )}
+
               <div style={{ position: 'absolute', top: 8, right: 8, fontFamily: 'Orbitron, monospace', fontSize: 9, color: '#ffd700', letterSpacing: 2 }}>{meta.rarity}</div>
               <div style={{ position: 'absolute', bottom: 8, left: 8, fontFamily: 'Orbitron, monospace', fontSize: 8, color: 'rgba(255,255,255,0.4)', letterSpacing: 1 }}>#{props.tokenId ?? '—'}</div>
             </div>
@@ -252,7 +285,6 @@ export default function AgentCard(props: AgentCardProps) {
             borderRadius: 18, height: '100%', position: 'relative',
             padding: '16px 16px 12px', overflowY: 'auto', boxSizing: 'border-box',
           }}>
-            {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
               <div>
                 <div style={{ fontFamily: 'Orbitron, monospace', fontSize: 13, fontWeight: 900, color: '#fff', letterSpacing: 1 }}>{props.name}</div>
@@ -273,11 +305,9 @@ export default function AgentCard(props: AgentCardProps) {
               </div>
             </div>
 
-            {/* Origin / Lore */}
             <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: '#475569', marginBottom: 8, marginTop: 0 }}>Origin</div>
             <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6, fontStyle: 'italic', marginBottom: 12 }}>{meta.lore}</p>
 
-            {/* Special Abilities */}
             <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: '#475569', marginBottom: 8, marginTop: 14 }}>Special Abilities</div>
             {meta.abilities.map((ab, i) => (
               <div key={i} style={{ background: 'rgba(255,255,255,0.04)', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '10px 12px', marginBottom: 8 }}>
@@ -286,7 +316,6 @@ export default function AgentCard(props: AgentCardProps) {
               </div>
             ))}
 
-            {/* Agent Traits */}
             <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: '#475569', marginBottom: 8, marginTop: 14 }}>Agent Traits</div>
             {meta.traits.map((t, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
@@ -295,7 +324,6 @@ export default function AgentCard(props: AgentCardProps) {
               </div>
             ))}
 
-            {/* Footer */}
             <div style={{ marginTop: 14, paddingTop: 10, borderTop: '0.5px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ fontSize: 9, color: '#334155', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600 }}>{meta.edition}</div>
               <div style={{ fontFamily: 'Orbitron, monospace', fontSize: 9, color: '#334155', letterSpacing: 1 }}>#{props.tokenId ?? '—'}</div>
@@ -304,7 +332,6 @@ export default function AgentCard(props: AgentCardProps) {
         </div>
       </div>
 
-      {/* Flip hint */}
       <div style={{ textAlign: 'center', fontSize: 11, color: '#475569', fontFamily: 'Rajdhani, sans-serif', letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 600, marginTop: 10 }}>
         {flipped ? '↺ Click to flip back' : '↺ Click card to flip'}
       </div>

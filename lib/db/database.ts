@@ -43,6 +43,7 @@ async function initTables() {
       capabilities TEXT DEFAULT '[]',
       dns TEXT,
       cardMetadata TEXT DEFAULT NULL,
+      cardImage TEXT DEFAULT NULL,
       createdAt TEXT DEFAULT NOW(),
       updatedAt TEXT DEFAULT NOW()
     )
@@ -514,6 +515,7 @@ function toCamel(s: string): string {
     completedcount: 'completedCount', startedby: 'startedBy', completedat: 'completedAt',
     executiontime: 'executionTime', reviewedby: 'reviewedBy', reviewdecision: 'reviewDecision',
     reviewfeedback: 'reviewFeedback', tokenid: 'tokenId', cardmetadata: 'cardMetadata',
+    cardimage: 'cardImage',
   }
   if (known[s]) return known[s]
   // Generic: snake_case -> camelCase

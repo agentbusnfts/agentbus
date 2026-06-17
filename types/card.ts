@@ -28,10 +28,11 @@ export interface CardMetadata {
   // Visual identity
   bodyColor: string
   accentColor: string
-  bgGrad: [string, string]       // radial gradient stops
-  borderGrad: string             // CSS linear-gradient for card border
+  bgGrad: [string, string]
+  borderGrad: string
   holoColor: string
   holoAccent: string
+  cardImage?: string        // URL or data URI for custom uploaded image
 
   // Card content
   edition: string                // e.g. "Genesis Edition · 2025"
