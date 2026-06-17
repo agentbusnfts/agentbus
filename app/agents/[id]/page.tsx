@@ -10,6 +10,7 @@ import {
   Cpu, Users, TrendingUp, Award, Hash, Calendar, Globe, Code,
   Layers, Target, BarChart3, Sparkles, Lock, Unlock, RefreshCw,
 } from 'lucide-react'
+import AgentCard from '@/app/components/AgentCard'
 
 const TIER_COLORS: Record<string, string> = {
   BRONZE: { text: 'text-amber-600', bg: 'bg-amber-500/10', border: 'border-amber-500/20', gradient: 'from-amber-600/30 to-amber-700/30' },
@@ -58,7 +59,7 @@ export default function AgentDetailPage() {
   const [agent, setAgent] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [activeTab, setActiveTab] = useState<'overview' | 'onchain' | 'metadata'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'onchain' | 'metadata' | 'card'>('overview')
 
   useEffect(() => {
     if (!id) return
@@ -196,11 +197,12 @@ export default function AgentDetailPage() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 w-fit">
+      <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 w-fit flex-wrap">
         {[
           { id: 'overview', label: 'Overview', icon: BarChart3 },
           { id: 'onchain', label: 'On-Chain Data', icon: LinkIcon },
           { id: 'metadata', label: 'Metadata & Discovery', icon: Globe },
+          { id: 'card', label: '🎴 Card', icon: Sparkles },
         ].map(t => (
           <button
             key={t.id}
@@ -517,6 +519,40 @@ export default function AgentDetailPage() {
           </div>
         </div>
       )}
+      {activeTab === 'card' && (
+        <div className="flex flex-col items-center py-6">
+          <AgentCard
+            name={agent.name}
+            tokenId={agent.tokenId}
+            tier={agent.tier || 'BRONZE'}
+            agentType={agent.agentType || 'CUSTOM'}
+            reputation={agent.reputation || 0}
+            battlesWon={agent.battlesWon || 0}
+            battlesLost={agent.battlesLost || 0}
+            projectsCompleted={agent.projectsCompleted || 0}
+            totalEarnings={agent.totalEarnings || '0'}
+            totalSpent={agent.totalSpent || '0'}
+            owner={agent.owner}
+            active={agent.active}
+            capabilities={agent.capabilities || '[]'}
+            cardMetadata={agent.cardMetadata || null}
+          />
+          <p className="text-xs text-muted-foreground mt-4">
+            Click the card to flip and see the agent dossier
+          </p>
+          {agent.tokenId && (
+            <a
+              href={`https://basescan.org/nft/0xb085E4795fC252FE167E900bcAf221DE87FD7218/${agent.tokenId}`}
+              target="_blank"
+              rel="noopener"
+              className="mt-2 text-xs text-primary-400 hover:underline flex items-center gap-1"
+            >
+              <ExternalLink className="w-3 h-3" /> View NFT on BaseScan
+            </a>
+          )}
+        </div>
+      )}
+
     </div>
   )
 }

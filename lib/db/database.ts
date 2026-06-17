@@ -5,6 +5,7 @@
 // multi-instance DB isolation. All API routes use the same function signatures.
 
 import { sql } from '@vercel/postgres'
+import { AGENT_CARD_SEEDS } from './card-seeds'
 
 // ═══════════════════════════════════════════════════════════════════
 // TABLE INITIALIZATION
@@ -41,6 +42,7 @@ async function initTables() {
       registrationTime TEXT,
       capabilities TEXT DEFAULT '[]',
       dns TEXT,
+      cardMetadata TEXT DEFAULT NULL,
       createdAt TEXT DEFAULT NOW(),
       updatedAt TEXT DEFAULT NOW()
     )
@@ -285,9 +287,10 @@ async function seedData() {
       ['agent-011', 'rewards.agent', null, 'REWARDS', 0, 'BRONZE', '0x47389F4Ca74be7a8D31be3EFce89e855adBA06Fb', 1, '0', '0', 0, 0, 0, '["rewards","distribution","incentives"]'],
     ]
     for (const a of agents) {
+      const cardMeta = AGENT_CARD_SEEDS[a[0] as keyof typeof AGENT_CARD_SEEDS] || null
       await sql`
-        INSERT INTO agents (id, name, tokenId, agentType, reputation, tier, owner, active, totalEarnings, totalSpent, battlesWon, battlesLost, projectsCompleted, capabilities)
-        VALUES (${a[0]}, ${a[1]}, ${a[2]}, ${a[3]}, ${a[4]}, ${a[5]}, ${a[6]}, ${a[7]}, ${a[8]}, ${a[9]}, ${a[10]}, ${a[11]}, ${a[12]}, ${a[13]})
+        INSERT INTO agents (id, name, tokenId, agentType, reputation, tier, owner, active, totalEarnings, totalSpent, battlesWon, battlesLost, projectsCompleted, capabilities, cardMetadata)
+        VALUES (${a[0]}, ${a[1]}, ${a[2]}, ${a[3]}, ${a[4]}, ${a[5]}, ${a[6]}, ${a[7]}, ${a[8]}, ${a[9]}, ${a[10]}, ${a[11]}, ${a[12]}, ${a[13]}, ${cardMeta ? JSON.stringify(cardMeta) : null})
         ON CONFLICT (id) DO NOTHING
       `
     }
@@ -510,7 +513,7 @@ function toCamel(s: string): string {
     authorname: 'authorName', cyclenumber: 'cycleNumber', taskcount: 'taskCount',
     completedcount: 'completedCount', startedby: 'startedBy', completedat: 'completedAt',
     executiontime: 'executionTime', reviewedby: 'reviewedBy', reviewdecision: 'reviewDecision',
-    reviewfeedback: 'reviewFeedback', tokenid: 'tokenId',
+    reviewfeedback: 'reviewFeedback', tokenid: 'tokenId', cardmetadata: 'cardMetadata',
   }
   if (known[s]) return known[s]
   // Generic: snake_case -> camelCase
@@ -559,7 +562,7 @@ export async function createAgent(data: Record<string, any>) {
 
 export async function updateAgent(id: string, data: Record<string, any>) {
   await ensureInitialized()
-  const allowed = ['name', 'reputation', 'tier', 'owner', 'active', 'inscriptionHash', 'metadataUri', 'capabilities', 'dns']
+  const allowed = ['name', 'reputation', 'tier', 'owner', 'active', 'inscriptionHash', 'metadataUri', 'capabilities', 'dns', 'cardMetadata']
   const fields: string[] = []
   const values: any[] = []
   for (const key of allowed) {
@@ -578,6 +581,24 @@ export async function updateAgent(id: string, data: Record<string, any>) {
     )
   }
   return getAgent(id)
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CARD METADATA OPERATIONS
+// ═══════════════════════════════════════════════════════════════════
+
+export async function updateAgentCardMetadata(id: string, cardMetadata: Record<string, any>) {
+  await ensureInitialized()
+  await sql`UPDATE agents SET cardMetadata = ${JSON.stringify(cardMetadata)}, updatedAt = NOW() WHERE id = ${id}`
+  return getAgent(id)
+}
+
+export async function getAgentsWithCards(owner?: string) {
+  await ensureInitialized()
+  if (owner) {
+    return rowsToCamel((await sql`SELECT * FROM agents WHERE owner = ${owner} OR active = 1 ORDER BY reputation DESC`).rows)
+  }
+  return rowsToCamel((await sql`SELECT * FROM agents WHERE active = 1 ORDER BY reputation DESC`).rows)
 }
 
 // ═══════════════════════════════════════════════════════════════════

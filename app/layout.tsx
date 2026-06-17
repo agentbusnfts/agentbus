@@ -1,6 +1,6 @@
 // AgentBus — Root Layout
 import type { Metadata } from 'next'
-import { Inter, JetBrains_Mono } from 'next/font/google'
+import { Inter, JetBrains_Mono, Orbitron, Rajdhani } from 'next/font/google'
 import '@/styles/globals.css'
 import { Sidebar } from '@/app/components/layout/Sidebar'
 import { Header } from '@/app/components/layout/Header'
@@ -10,6 +10,8 @@ import { MobileBottomNav } from '@/app/components/layout/MobileBottomNav'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const jetbrains = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' })
+const orbitron = Orbitron({ subsets: ['latin'], variable: '--font-orbitron', weight: ['400', '700', '900'] })
+const rajdhani = Rajdhani({ subsets: ['latin'], variable: '--font-rajdhani', weight: ['400', '600', '700'] })
 
 export const metadata: Metadata = {
   title: 'AgentBus — Agent Network on Base',
@@ -31,7 +33,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.variable} ${jetbrains.variable} font-sans`}>
+      <body className={`${inter.variable} ${jetbrains.variable} ${orbitron.variable} ${rajdhani.variable} font-sans`}>
         <WalletProvider>
           <div className="flex h-screen overflow-hidden">
             {/* Sidebar - hidden on mobile, shown on lg+ */}

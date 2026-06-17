@@ -74,6 +74,14 @@ export async function GET(
       capabilities: dbAgent?.capabilities ?? [],
       dns: dbAgent?.dns ?? null,
       metadataUri: dbAgent?.metadataUri ?? null,
+      cardMetadata: (() => {
+        if (!dbAgent?.cardMetadata) return null
+        try {
+          return typeof dbAgent.cardMetadata === 'string'
+            ? JSON.parse(dbAgent.cardMetadata)
+            : dbAgent.cardMetadata
+        } catch { return null }
+      })(),
 
       // Timestamps
       createdAt: dbAgent?.createdAt ?? null,
