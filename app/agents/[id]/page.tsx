@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import { useSignMessage, useAccount } from 'wagmi'
 import {
   Bot, Star, Trophy, Zap, ArrowLeft, Shield, Clock, ExternalLink,
   Activity, DollarSign, Swords, CheckCircle, XCircle, Link as LinkIcon,
@@ -555,43 +556,87 @@ export default function AgentDetailPage() {
 }
 
 /* ═══════════ CARD IMAGE UPLOAD COMPONENT ═══════════ */
-function CardImageUpload({ agentId, currentImage, isOwner }: { agentId: string; currentImage: string | null; isOwner: boolean }) {
+
+function CardImageUpload({ agentId, currentImage }: { agentId: string; currentImage: string | null }) {
   const [uploading, setUploading] = useState(false)
   const [preview, setPreview] = useState<string | null>(currentImage)
   const [dragOver, setDragOver] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  if (!isOwner) return null
+  const { signMessageAsync } = useSignMessage()
+  const { address: walletAddress } = useAccount()
 
   const handleFile = async (file: File) => {
-    if (!file.type.startsWith('image/')) { alert('Please upload an image file'); return }
-    if (file.size > 2 * 1024 * 1024) { alert('Image must be under 2MB'); return }
+    if (!file.type.startsWith('image/')) { setError('Please upload an image file'); return }
+    if (file.size > 2 * 1024 * 1024) { setError('Image must be under 2MB'); return }
+    setError(null)
 
-    // Convert to base64 data URL
     const reader = new FileReader()
     reader.onload = async (e) => {
       const dataUrl = e.target?.result as string
       setPreview(dataUrl)
       setUploading(true)
+
       try {
+        // Step 1: Get nonce from server
+        const nonceRes = await fetch(`/api/agents/upload-image?agentId=${agentId}`)
+        const nonceData = await nonceRes.json()
+        if (!nonceData.success) {
+          setError(nonceData.error || 'Failed to initiate upload')
+          setPreview(currentImage)
+          return
+        }
+
+        // Step 2: Sign the nonce message with wagmi
+        if (!walletAddress) {
+          setError('Please connect your wallet first')
+          setPreview(currentImage)
+          return
+        }
+        const message = nonceData.data.message
+        const signature = await signMessageAsync({ message })
+
+        // Step 3: Upload with signature verification
         const res = await fetch('/api/agents/upload-image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ agentId, image: dataUrl, walletAddress: '' }),
+          body: JSON.stringify({ agentId, image: dataUrl, walletAddress, signature, message }),
         })
         const data = await res.json()
         if (!data.success) {
-          alert(data.error || 'Upload failed')
+          setError(data.error || 'Upload failed')
           setPreview(currentImage)
         }
-      } catch (err) {
-        alert('Upload failed')
+      } catch (err: any) {
+        setError(err.message || 'Upload failed')
         setPreview(currentImage)
       } finally {
         setUploading(false)
       }
     }
     reader.readAsDataURL(file)
+  }
+
+  const handleRemove = async () => {
+    if (!walletAddress) return
+    setPreview(null)
+    setUploading(true)
+    try {
+      const nonceRes = await fetch(`/api/agents/upload-image?agentId=${agentId}`)
+      const nonceData = await nonceRes.json()
+      if (!nonceData.success) return
+
+      const message = nonceData.data.message
+      const signature = await signMessageAsync({ message })
+
+      await fetch(`/api/agents/upload-image?agentId=${agentId}&walletAddress=${walletAddress}&signature=${encodeURIComponent(signature)}&message=${encodeURIComponent(message)}`, {
+        method: 'DELETE',
+      })
+    } catch (err) {
+      console.error('Remove failed:', err)
+    } finally {
+      setUploading(false)
+    }
   }
 
   const handleDrop = (e: React.DragEvent) => {
@@ -640,13 +685,10 @@ function CardImageUpload({ agentId, currentImage, isOwner }: { agentId: string; 
           onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
         />
       </div>
+      {error && <p className="mt-1 text-[10px] text-red-400">{error}</p>}
       {preview && (
         <button
-          onClick={(e) => {
-            e.stopPropagation()
-            setPreview(null)
-            fetch(`/api/agents/upload-image?agentId=${agentId}&walletAddress=`, { method: 'DELETE' })
-          }}
+          onClick={(e) => { e.stopPropagation(); handleRemove(); }}
           className="mt-2 text-[10px] text-red-400 hover:text-red-300 transition-colors"
         >
           ✕ Remove custom image
