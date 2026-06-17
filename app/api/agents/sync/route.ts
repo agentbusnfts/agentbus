@@ -1,7 +1,8 @@
 // AgentBus — Sync agents from on-chain to database
 import { NextRequest, NextResponse } from 'next/server'
 import { fetchAgentOnChain, fetchAllAgentTokenIds, getTokenIdByName } from '@/lib/db/chain-agents'
-import { getAgent, createAgent, updateAgent } from '@/lib/db/database'
+import { getAgent, createAgent, updateAgent, updateAgentCardMetadata } from '@/lib/db/database'
+import { generateCardMetadataForNewAgent } from '@/lib/card-metadata-generator'
 
 const AGENT_TYPE_MAP: Record<number, string> = {
   0: 'OPERATIONS', 1: 'RESEARCH', 2: 'TRADING', 3: 'CREATIVE', 4: 'SECURITY',
@@ -43,9 +44,37 @@ async function syncAgentFromChain(tokenId: number): Promise<any> {
   if (existing) {
     // Update with on-chain data (on-chain is source of truth for identity)
     await updateAgent(agentData.id, agentData)
+    // Also update card metadata if agent has a tokenId (regenerate with latest data)
+    if (onChain.tokenId !== null && onChain.tokenId !== undefined) {
+      const freshMeta = generateCardMetadataForNewAgent({
+        name: onChain.name,
+        tokenId: onChain.tokenId,
+        agentType: onChain.agentTypeLabel.toUpperCase(),
+        tier: onChain.tierLabel.toUpperCase(),
+        reputation: onChain.reputation,
+        battlesWon: onChain.battlesWon,
+        battlesLost: onChain.battlesLost,
+        projectsCompleted: onChain.projectsCompleted,
+      })
+      await updateAgentCardMetadata(agentData.id, freshMeta)
+    }
   } else {
     // Create new agent in DB from on-chain data
     await createAgent(agentData)
+    // Auto-generate card metadata for new agent
+    if (onChain.tokenId !== null && onChain.tokenId !== undefined) {
+      const cardMeta = generateCardMetadataForNewAgent({
+        name: onChain.name,
+        tokenId: onChain.tokenId,
+        agentType: onChain.agentTypeLabel.toUpperCase(),
+        tier: onChain.tierLabel.toUpperCase(),
+        reputation: onChain.reputation,
+        battlesWon: onChain.battlesWon,
+        battlesLost: onChain.battlesLost,
+        projectsCompleted: onChain.projectsCompleted,
+      })
+      await updateAgentCardMetadata(agentData.id, cardMeta)
+    }
   }
 
   return agentData

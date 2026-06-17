@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { Search, Filter, Grid3X3, LayoutGrid, ChevronDown, ExternalLink, Star, Swords, Trophy, Eye } from 'lucide-react'
 import AgentCard from '@/app/components/AgentCard'
 import { ELEMENT_COLORS } from '@/types/card'
+import { generateCompactArt } from '@/lib/card-art'
 
 interface AgentCardData {
   id: string
@@ -384,23 +385,15 @@ function GridCard({ agent }: { agent: AgentCardData }) {
             className="rounded-t-[14px] overflow-hidden"
             style={{ background: `linear-gradient(160deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)` }}
           >
-            {/* Mini art area */}
+            {/* Mini art area — deterministic unique SVG */}
             <div className="relative h-40 overflow-hidden">
               <div
                 className="absolute inset-0"
                 style={{ background: `radial-gradient(circle at 50% 40%, ${bgGrad[0]} 0%, ${bgGrad[1]} 100%)` }}
               />
-              {/* Procedural SVG art */}
-              <div className="absolute inset-0 flex items-center justify-center opacity-60">
-                <svg width="120" height="120" viewBox="0 0 120 120">
-                  <circle cx="60" cy="60" r="50" fill="none" stroke={bodyColor} strokeWidth="1" opacity="0.2" />
-                  <circle cx="60" cy="60" r="35" fill="none" stroke={accentColor} strokeWidth="1" opacity="0.3" />
-                  <circle cx="60" cy="60" r="20" fill={accentColor} opacity="0.4" />
-                  <circle cx="60" cy="60" r="8" fill="white" opacity="0.6" />
-                  <line x1="60" y1="10" x2="60" y2="25" stroke={bodyColor} strokeWidth="1.5" opacity="0.4" />
-                  <line x1="60" y1="95" x2="60" y2="110" stroke={bodyColor} strokeWidth="1.5" opacity="0.4" />
-                  <line x1="10" y1="60" x2="25" y2="60" stroke={bodyColor} strokeWidth="1.5" opacity="0.4" />
-                  <line x1="95" y1="60" x2="110" y2="60" stroke={bodyColor} strokeWidth="1.5" opacity="0.4" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <svg width="160" height="160" viewBox="0 0 288 190" xmlns="http://www.w3.org/2000/svg">
+                  <g dangerouslySetInnerHTML={{ __html: (() => { const a = generateCompactArt(agent.tokenId, agent.name); return a.svg })() }} />
                 </svg>
               </div>
               {/* Rarity */}

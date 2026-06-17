@@ -3,7 +3,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createPublicClient, http, parseAbi } from 'viem'
 import { base } from 'viem/chains'
-import { getAgent, createAgent } from '@/lib/db/database'
+import { getAgent, createAgent, updateAgentCardMetadata } from '@/lib/db/database'
+import { generateCardMetadataForNewAgent } from '@/lib/card-metadata-generator'
 
 const AGENT_NFT_ADDRESS = (process.env.NEXT_PUBLIC_AGENT_NFT_ADDRESS || '0xb085E4795fC252FE167E900bcAf221DE87FD7218') as `0x${string}`
 
@@ -186,6 +187,18 @@ export async function POST(request: NextRequest) {
       tier: 'BRONZE',
       active: true,
     })
+
+    // Auto-generate card metadata for the new agent
+    if (tokenId) {
+      const cardMeta = generateCardMetadataForNewAgent({
+        name,
+        tokenId,
+        agentType: agentType !== undefined ? String(agentType) : 'CUSTOM',
+        tier: 'BRONZE',
+        reputation: 0,
+      })
+      await updateAgentCardMetadata((agent as any).id, cardMeta)
+    }
 
     return NextResponse.json({
       success: true,
