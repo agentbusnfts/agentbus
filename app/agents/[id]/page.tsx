@@ -193,6 +193,16 @@ export default function AgentDetailPage() {
         />
         {/* Card image upload — only for owner */}
         <CardImageUpload agentId={agent.id} currentImage={agent.cardImage} isOwner={true} />
+        {/* Venice AI image generation */}
+        <VeniceImageGenerator
+          agentId={agent.id}
+          currentImage={agent.cardImage}
+          agentName={agent.name}
+          agentType={agent.agentType || 'CUSTOM'}
+          tier={agent.tier || 'BRONZE'}
+          reputation={agent.reputation || 0}
+          capabilities={agent.capabilities || '[]'}
+        />
         {agent.tokenId && (
           <a
             href={`https://basescan.org/nft/0xb085E4795fC252FE167E900bcAf221DE87FD7218/${agent.tokenId}`}
@@ -694,6 +704,91 @@ function CardImageUpload({ agentId, currentImage }: { agentId: string; currentIm
           ✕ Remove custom image
         </button>
       )}
+    </div>
+  )
+}
+
+/* ═══════════ VENICE AI IMAGE GENERATION COMPONENT ═══════════ */
+function VeniceImageGenerator({ agentId, currentImage, agentName, agentType, tier, reputation, capabilities }: {
+  agentId: string; currentImage: string | null; agentName: string; agentType: string; tier: string; reputation: number; capabilities: string
+}) {
+  const [generating, setGenerating] = useState(false)
+  const [prompt, setPrompt] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+  const { address: walletAddress } = useAccount()
+
+  const defaultPrompt = `A single centered avatar for an AI agent trading card. The agent is named "${agentName}", a ${agentType.toLowerCase()} class agent with ${tier} tier and ${reputation} reputation. Specializes in ${JSON.parse(capabilities || '[]').slice(0, 3).join(', ') || agentType.toLowerCase()}. Style: clean, minimal, dark background with subtle glow, Pokémon trading card art style, centered composition, no text, no watermarks, no borders, professional digital art, high detail, vibrant colors`
+
+  const handleGenerate = async () => {
+    if (!walletAddress) { setError('Please connect your wallet first'); return }
+    setGenerating(true)
+    setError(null)
+    setSuccess(false)
+    try {
+      const res = await fetch('/api/agents/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agentId,
+          walletAddress,
+          prompt: prompt || defaultPrompt,
+        }),
+      })
+      const data = await res.json()
+      if (!data.success) {
+        setError(data.error || 'Generation failed')
+      } else {
+        setSuccess(true)
+        // Reload page to show new image
+        window.location.reload()
+      }
+    } catch (err: any) {
+      setError(err.message || 'Generation failed')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  return (
+    <div className="mt-3 w-full max-w-[320px]">
+      <div className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+          <span className="text-xs font-semibold text-foreground">Venice AI Image Generation</span>
+        </div>
+        <textarea
+          value={prompt}
+          onChange={e => setPrompt(e.target.value)}
+          placeholder={defaultPrompt}
+          rows={3}
+          className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[10px] text-foreground placeholder-muted-foreground/40 resize-none focus:outline-none focus:border-primary-500/50"
+        />
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[9px] text-muted-foreground/60">
+            {currentImage ? '⚠️ Replaces current image' : '✨ Generate unique card art'}
+          </span>
+          <button
+            onClick={handleGenerate}
+            disabled={generating || !walletAddress}
+            className="px-3 py-1 rounded-lg bg-purple-500/20 text-purple-400 text-[10px] font-semibold hover:bg-purple-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+          >
+            {generating ? (
+              <>
+                <div className="w-3 h-3 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>🎨 Generate</>
+            )}
+          </button>
+        </div>
+        {error && <p className="text-[10px] text-red-400">{error}</p>}
+        {success && <p className="text-[10px] text-emerald-400">✅ Image generated! Reloading...</p>}
+        <p className="text-[8px] text-muted-foreground/40">
+          Powered by Venice AI • Flux-dev model • 768×768
+        </p>
+      </div>
     </div>
   )
 }
