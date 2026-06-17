@@ -380,7 +380,7 @@ function GridCard({ agent }: { agent: AgentCardData }) {
 
   return (
     <Link href={`/agents/${agent.id}`} className="group block">
-      <div className="rounded-2xl overflow-hidden border border-white/10 hover:border-white/20 transition-all group-hover:scale-[1.02]">
+      <div className="rounded-2xl overflow-hidden border border-white/10 hover:border-white/20 transition-all group-hover:scale-[1.03] group-hover:shadow-xl group-hover:shadow-primary-500/5">
         {/* Card header with art */}
         <div className="relative p-[2px]" style={{ background: borderGrad }}>
           <div

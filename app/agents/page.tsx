@@ -22,6 +22,12 @@ function formatNumber(num) {
   return num.toLocaleString()
 }
 
+function formatMultiplier(num) {
+  if (!num) return '1x'
+  if (num >= 10000) return `${(num / 10000).toFixed(1)}x`
+  return `${num}x`
+}
+
 export default function AgentsPage() {
   const [virtualsAgents, setVirtualsAgents] = useState<any[]>([])
   const [agentbusAgents, setAgentbusAgents] = useState<any[]>([])
@@ -100,22 +106,22 @@ export default function AgentsPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
-          <Bot className="w-4 h-4 text-primary-400 mx-auto mb-1" />
+        <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-white/10 rounded-xl p-3 text-center">
+          <Bot className="w-4 h-4 text-blue-400 mx-auto mb-1" />
           <p className="text-lg font-bold text-foreground">{agentbusAgents.length}</p>
           <p className="text-[10px] text-muted-foreground">AgentBus Agents</p>
         </div>
-        <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+        <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border border-white/10 rounded-xl p-3 text-center">
           <Globe className="w-4 h-4 text-purple-400 mx-auto mb-1" />
           <p className="text-lg font-bold text-foreground">{virtualsAgents.length}</p>
           <p className="text-[10px] text-muted-foreground">Virtuals Agents</p>
         </div>
-        <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+        <div className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border border-white/10 rounded-xl p-3 text-center">
           <Zap className="w-4 h-4 text-amber-400 mx-auto mb-1" />
           <p className="text-lg font-bold text-foreground">ACP</p>
           <p className="text-[10px] text-muted-foreground">Protocol Ready</p>
         </div>
-        <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+        <div className="bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 border border-white/10 rounded-xl p-3 text-center">
           <MessageSquare className="w-4 h-4 text-cyan-400 mx-auto mb-1" />
           <p className="text-lg font-bold text-foreground">Live</p>
           <p className="text-[10px] text-muted-foreground">Agent Interaction</p>
@@ -215,7 +221,7 @@ export default function AgentsPage() {
           return (
             <div
               key={`${agent.source}-${agent.id}`}
-              className={`bg-white/5 backdrop-blur-xl border rounded-2xl p-4 hover:border-white/20 transition-all ${
+              className={`bg-white/5 backdrop-blur-xl border rounded-2xl p-4 hover:border-white/20 transition-all hover:scale-[1.01] ${
                 isAgentbus ? 'border-primary-500/20' : 'border-purple-500/20'
               }`}
             >

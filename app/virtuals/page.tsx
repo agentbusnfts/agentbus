@@ -170,14 +170,14 @@ export default function VirtualsPage() {
           {/* Stats Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
-              { label: 'Market Cap', value: formatNumber(token?.marketCap), icon: DollarSign, color: 'text-emerald-400' },
-              { label: 'FDV', value: formatNumber(token?.fdv), icon: BarChart3, color: 'text-blue-400' },
-              { label: '24h Volume', value: formatNumber(token?.volume24h), icon: Activity, color: 'text-amber-400' },
-              { label: 'Liquidity', value: formatNumber(token?.liquidity), icon: Zap, color: 'text-cyan-400' },
-              { label: 'Holders', value: token?.holderCount || 0, icon: Users, color: 'text-purple-400' },
-              { label: 'Supply', value: formatSupply(token?.totalSupply), icon: Globe, color: 'text-pink-400' },
+              { label: 'Market Cap', value: formatNumber(token?.marketCap), icon: DollarSign, color: 'text-emerald-400', bg: 'from-emerald-500/10 to-emerald-600/5' },
+              { label: 'FDV', value: formatNumber(token?.fdv), icon: BarChart3, color: 'text-blue-400', bg: 'from-blue-500/10 to-blue-600/5' },
+              { label: '24h Volume', value: formatNumber(token?.volume24h), icon: Activity, color: 'text-amber-400', bg: 'from-amber-500/10 to-amber-600/5' },
+              { label: 'Liquidity', value: formatNumber(token?.liquidity), icon: Zap, color: 'text-cyan-400', bg: 'from-cyan-500/10 to-cyan-600/5' },
+              { label: 'Holders', value: token?.holderCount || 0, icon: Users, color: 'text-purple-400', bg: 'from-purple-500/10 to-purple-600/5' },
+              { label: 'Supply', value: formatSupply(token?.totalSupply), icon: Globe, color: 'text-pink-400', bg: 'from-pink-500/10 to-pink-600/5' },
             ].map(s => (
-              <div key={s.label} className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-3 sm:p-4 text-center">
+              <div key={s.label} className={`bg-gradient-to-br ${s.bg} backdrop-blur-xl border border-white/10 rounded-xl p-3 sm:p-4 text-center`}>
                 <s.icon className={`w-4 h-4 ${s.color} mx-auto mb-1`} />
                 <p className={`text-base sm:text-lg font-bold ${s.color}`}>{s.value}</p>
                 <p className="text-[10px] text-muted-foreground">{s.label}</p>
@@ -423,25 +423,25 @@ export default function VirtualsPage() {
             </div>
           </div>
 
-          {/* Live Price Chart Placeholder */}
+          {/* Price Overview */}
           <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-5">
             <h2 className="text-lg font-semibold text-foreground mb-3">Price Overview</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="bg-white/5 rounded-xl p-3 text-center">
+              <div className="bg-gradient-to-br from-[#7c3aed]/10 to-[#a855f7]/5 rounded-xl p-3 text-center">
                 <p className="text-xs text-muted-foreground">Price</p>
                 <p className="text-lg font-bold text-foreground">{formatPrice(token?.price)}</p>
               </div>
-              <div className="bg-white/5 rounded-xl p-3 text-center">
+              <div className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 rounded-xl p-3 text-center">
                 <p className="text-xs text-muted-foreground">24h Change</p>
                 <p className={`text-lg font-bold ${isUp ? 'text-emerald-400' : 'text-red-400'}`}>
                   {isUp ? '+' : ''}{priceChange.toFixed(2)}%
                 </p>
               </div>
-              <div className="bg-white/5 rounded-xl p-3 text-center">
+              <div className="bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 rounded-xl p-3 text-center">
                 <p className="text-xs text-muted-foreground">24h Volume</p>
                 <p className="text-lg font-bold text-foreground">${formatNumber(token?.volume24h)}</p>
               </div>
-              <div className="bg-white/5 rounded-xl p-3 text-center">
+              <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 rounded-xl p-3 text-center">
                 <p className="text-xs text-muted-foreground">Liquidity</p>
                 <p className="text-lg font-bold text-foreground">${formatNumber(token?.liquidity)}</p>
               </div>
